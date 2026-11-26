@@ -1,0 +1,6 @@
+{
+  "name": "Pulso M34",
+  "description": "Módulo de radio táctica push-to-talk (PTT), mapa operativo y telemetría de emergencia integrado al ecosistema ANTHI M34.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
