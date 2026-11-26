@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pulso M34 · ANTHI</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+  <style>
+    :root {
+      --bg: #070B12;
+      --bg-deep: #0D1522;
+      --deck: #0F1724;
+      --surface: #162133;
+      --surface-alt: #1D2B42;
+      --border: #263854;
+      --accent: #00E5A8;
+      --cyan: #06B6D4;
+      --sos: #FF3B30;
+      --amber: #F59E0B;
+      --text: #F1F5F9;
+      --muted: #94A3B8;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg);
+    }
+
+    /* Top Bar */
+    .topbar {
+      background: var(--bg-deep);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      z-index: 500;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.6px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(0, 229, 168, 0.7);
+      flex-shrink: 0;
+    }
+
+    .status-dot.sos {
+      background: var(--sos);
+      box-shadow: 0 0 10px rgba(255, 59, 48, 0.9);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav-tab.active {
+      background: rgba(0, 229, 168, 0.14);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Main Content Views */
+    .view-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      position: relative;
+    }
+
+    .view-pane {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .view-pane.active {
+      display: flex;
+    }
+
+    /* Permanent Top Leaflet Map */
+    .map-section {
+      position: relative;
+      flex: 1;
+      min-height: 200px;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    #tacticalMap {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    /* Dark tactical filter on OpenStreetMap tiles */
+    .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(94%) saturate(65%);
+    }
+
+    .leaflet-container {
+      background: #070B12 !important;
+      font-family: inherit;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(7, 11, 18, 0.75) !important;
+      color: #64748B !important;
+      font-size: 9px !important;
+    }
+
+    .leaflet-control-attribution a {
+      color: #06B6D4 !important;
+    }
+
+    /* Map Overlays */
+    .map-hud-top {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+      z-index: 420;
+      pointer-events: none;
+    }
+
+    .hud-card {
+      background: rgba(13, 21, 34, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 10px;
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+      max-width: 68%;
+    }
+
+    .hud-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-sector {
+      font-size: 11px;
+      color: var(--amber);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .hud-meta {
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--cyan);
+      margin-top: 2px;
+    }
+
+    .map-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .map-btn {
+      background: rgba(13, 21, 34, 0.94);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 6px 9px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .map-btn.accent {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .map-btn.sos {
+      border-color: var(--sos);
+      color: #ffd3d0;
+    }
+
+    .map-event-bar {
+      position: absolute;
+      bottom: 10px;
+      left: 8px;
+      display: flex;
+      gap: 5px;
+      z-index: 420;
+    }
+
+    .ev-pill {
+      background: rgba(13, 21, 34, 0.92);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ev-pill.active {
+      background: rgba(255, 59, 48, 0.22);
+      border-color: var(--sos);
+      color: #fff;
+    }
+
+    .silent-banner {
+      position: absolute;
+      bottom: 42px;
+      left: 8px;
+      right: 8px;
+      background: rgba(62, 13, 27, 0.95);
+      border: 1px solid var(--sos);
+      color: #fff;
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 430;
+      display: none;
+      text-align: center;
+    }
+
+    .silent-banner.visible {
+      display: block;
+    }
+
+    /* Custom Leaflet Markers */
+    .sos-marker-wrap {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sos-pulse {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 59, 48, 0.35);
+      animation: pulseRing 1.5s infinite ease-out;
+    }
+
+    .sos-core {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--sos);
+      border: 2px solid #fff;
+      box-shadow: 0 0 10px var(--sos);
+    }
+
+    .sup-marker {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #070B12;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .sup-marker.self {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      border-color: #fff;
+    }
+
+    .map-label-tooltip {
+      background: rgba(13, 21, 34, 0.92) !important;
+      border: 1px solid #263854 !important;
+      color: #F1F5F9 !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      padding: 2px 6px !important;
+      border-radius: 6px !important;
+      box-shadow: none !important;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.75); opacity: 0.95; }
+      100% { transform: scale(2.1); opacity: 0; }
+    }
+
+    /* Compact Floating Bottom Mini-Radio Dock */
+    .radio-dock {
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border);
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      padding: 9px 11px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      z-index: 450;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .dock-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .role-badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 6px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 54%;
+    }
+
+    .sivoy-wrap {
+      position: relative;
+    }
+
+    .sivoy-btn {
+      background: var(--accent);
+      color: #041510;
+      border: 1px solid var(--accent);
+      border-radius: 9px;
+      padding: 7px 11px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .sivoy-btn.confirmed {
+      background: rgba(0, 229, 168, 0.16);
+      color: var(--accent);
+    }
+
+    .sivoy-dropdown {
+      position: absolute;
+      right: 0;
+      bottom: 38px;
+      width: 235px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 600;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7);
+    }
+
+    .sivoy-dropdown.open {
+      display: flex;
+    }
+
+    .sivoy-opt {
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 7px 9px;
+      text-align: left;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .sivoy-opt:active {
+      border-color: var(--accent);
+    }
+
+    /* On-air + TOT strip */
+    .on-air-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .on-air-card.tx {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: var(--amber);
+    }
+
+    .on-air-card.rx {
+      background: rgba(6, 182, 212, 0.14);
+      border-color: var(--cyan);
+    }
+
+    .on-air-card.warn {
+      background: rgba(255, 59, 48, 0.18);
+      border-color: var(--sos);
+    }
+
+    .on-air-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .air-title {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .air-sub {
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .tot-chip {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .tot-chip.warn {
+      color: var(--sos);
+      border-color: var(--sos);
+    }
+
+    .tot-bar-track {
+      width: 100%;
+      height: 4px;
+      background: var(--bg);
+      border-radius: 3px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .tot-bar-track.visible {
+      display: block;
+    }
+
+    .tot-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--amber);
+      transition: width 0.25s linear;
+    }
+
+    .tot-bar-fill.warn {
+      background: var(--sos);
+    }
+
+    /* Channel Keypad */
+    .keypad {
+      display: flex;
+      gap: 5px;
+    }
+
+    .ch-key {
+      flex: 1;
+      min-height: 44px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px;
+    }
+
+    .ch-key.wide {
+      flex: 1.45;
+      font-size: 10.5px;
+    }
+
+    .ch-key.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--amber);
+      color: #fff;
+    }
+
+    .ch-key.victim.active {
+      background: rgba(255, 59, 48, 0.22);
+      border-color: var(--sos);
+    }
+
+    .ch-key.admin.active {
+      background: rgba(6, 182, 212, 0.22);
+      border-color: var(--cyan);
+    }
+
+    .ch-key.confirmed-dot::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .ch-key.locked {
+      color: var(--muted);
+      opacity: 0.65;
+    }
+
+    /* PTT Button */
+    .ptt-btn {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 12px;
+      border: 1.5px solid var(--accent);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .ptt-btn.tx {
+      background: var(--amber);
+      border-color: #fbbf24;
+      color: #070B12;
+    }
+
+    .ptt-btn.tx.warn {
+      background: var(--sos);
+      border-color: #ff6b63;
+      color: #fff;
+    }
+
+    .ptt-btn.locked {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--muted);
+    }
+
+    .ptt-btn.emitter {
+      background: #3e0d1b;
+      border-color: var(--sos);
+      color: #fff;
+    }
+
+    /* Simulator & APK Tabs */
+    .scroll-pane {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .panel-card {
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .panel-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .sim-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .sim-btn.active {
+      border-color: var(--accent);
+      background: rgba(0, 229, 168, 0.14);
+      color: var(--accent);
+    }
+
+    .sim-btn.amber {
+      background: var(--amber);
+      color: #070B12;
+      border-color: var(--amber);
+    }
+
+    .sim-btn.cyan {
+      background: var(--cyan);
+      color: #070B12;
+      border-color: var(--cyan);
+    }
+
+    .sim-btn.sos {
+      border-color: var(--sos);
+      color: #ffb8b3;
+    }
+
+    .log-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 9px;
+      font-size: 11px;
+    }
+
+    .log-item.alert {
+      border-color: var(--sos);
+      background: rgba(255, 59, 48, 0.12);
+    }
+
+    pre.code-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 10.5px;
+      color: var(--cyan);
+      overflow-x: auto;
+      margin: 0;
+      line-height: 1.45;
+      user-select: text;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Top Institutional Bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div id="statusDot" class="status-dot"></div>
+      <span>PULSO M34</span>
+      <span id="anthiBadge" style="color:var(--cyan);font-size:10.5px;font-weight:600;">ANTHI · 2 EV</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tabBtn_tactical" onclick="switchTab('tactical')">Mapa + Radio</button>
+      <button class="nav-tab" id="tabBtn_sim" onclick="switchTab('sim')">Simulador</button>
+      <button class="nav-tab" id="tabBtn_anthi" onclick="switchTab('anthi')">ANTHI / APK</button>
+    </div>
+  </div>
+
+  <div class="view-container">
+    <!-- TAB 1: Mapa Geográfico Permanente + Mini-Radio Inferior -->
+    <div id="pane_tactical" class="view-pane active">
+      <div class="map-section">
+        <div id="tacticalMap"></div>
+
+        <!-- Telemetry HUD & Centering Controls -->
+        <div class="map-hud-top">
+          <div class="hud-card">
+            <div class="hud-title" id="hudEventTitle">EV.1 · Móvil 14 (ANTHI-3401)</div>
+            <div class="hud-sector" id="hudEventSector">Hacia el Norte · Sector Café Madrid · 54 km/h</div>
+            <div class="hud-meta" id="hudEventMeta">7.1524, -73.1296 · Rumbo 012° · 2 apoyos</div>
+          </div>
+
+          <div class="map-actions">
+            <button class="map-btn sos" onclick="centerOnActiveEvent()">Centrar Evento</button>
+            <button class="map-btn accent" onclick="centerOnUserUnit()">Mi Ubicación</button>
+          </div>
+        </div>
+
+        <!-- Silent Emitter Warning Banner -->
+        <div id="silentBanner" class="silent-banner">
+          EMISOR EN ALARMA · SILENCIO TOTAL (0% ALTAVOZ) · CAPTURA MIC / CÁMARA / GPS ACTIVA
+        </div>
+
+        <!-- Quick Event Selector Pills on Map -->
+        <div id="mapEventBar" class="map-event-bar"></div>
+      </div>
+
+      <!-- Compact One-Handed Floating Mini-Radio Dock -->
+      <div class="radio-dock">
+        <div class="dock-top-row">
+          <button class="role-badge" id="roleQuickChip" onclick="switchTab('sim')">
+            Conductor · Sin confirmar
+          </button>
+
+          <div class="sivoy-wrap" id="siVoyContainer">
+            <button id="siVoyBtn" class="sivoy-btn" onclick="onSiVoyButtonClick()">
+              Sí voy ▾
+            </button>
+            <div id="siVoyDropdown" class="sivoy-dropdown"></div>
+          </div>
+        </div>
+
+        <div id="onAirCard" class="on-air-card">
+          <div class="on-air-row">
+            <div style="min-width:0;flex:1;">
+              <div id="airTitle" class="air-title">Evento 1 · Canal libre</div>
+              <div id="airSub" class="air-sub">Confirma "Sí voy" para hablar en Evento 1</div>
+            </div>
+            <div id="totChip" class="tot-chip">TOT 00:30</div>
+          </div>
+          <div id="totBarTrack" class="tot-bar-track">
+            <div id="totBarFill" class="tot-bar-fill"></div>
+          </div>
+        </div>
+
+        <div id="channelKeypad" class="keypad"></div>
+
+        <button
+          id="pttBtn"
+          class="ptt-btn locked"
+          onpointerdown="startPtt(event)"
+          onpointerup="stopPtt()"
+          onpointercancel="stopPtt()"
+          onpointerleave="stopPtt()">
+          CONFIRMA "SÍ VOY" PARA TRANSMITIR
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 2: Simulador de Escenarios -->
+    <div id="pane_sim" class="view-pane">
+      <div class="scroll-pane">
+        <div class="panel-card">
+          <div class="panel-title">Eventos activos simultáneos (ANTHI M34)</div>
+          <div class="panel-sub">Con 1 evento el botón "Sí voy" es directo; con 2 o 3 abre desplegable.</div>
+          <div class="btn-grid">
+            <button class="sim-btn" id="simEv1" onclick="setEventCount(1)">1 Evento</button>
+            <button class="sim-btn active" id="simEv2" onclick="setEventCount(2)">2 Eventos</button>
+            <button class="sim-btn" id="simEv3" onclick="setEventCount(3)">3 Eventos</button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Cambiar rol del dispositivo</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="sim-btn" id="simRole_ADMIN" onclick="setRole('ADMIN')">Administrador (Acceso total · TOT 180s)</button>
+            <button class="sim-btn" id="simRole_DRIVER_CONFIRMED" onclick="setRole('DRIVER_CONFIRMED')">Conductor con "Sí voy" (Evento asignado · TOT 30s)</button>
+            <button class="sim-btn active" id="simRole_DRIVER_UNCONFIRMED" onclick="setRole('DRIVER_UNCONFIRMED')">Conductor sin confirmar (TX bloqueado)</button>
+            <button class="sim-btn sos" id="simRole_ALARM_EMITTER" onclick="setRole('ALARM_EMITTER')">Emisor en Alarma (Silencio total 0% + Captura)</button>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Pruebas rápidas TOT y Silencio</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button class="sim-btn amber" onclick="testTot30()">Probar corte TOT 30s</button>
+            <button class="sim-btn cyan" onclick="testTot180()">Probar corte TOT 180s</button>
+          </div>
+          <button class="sim-btn sos" onclick="simulateIncomingRx()">Simular RX entrante (prueba silencio en Emisor)</button>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Bitácora Táctica</div>
+          <div id="logList" style="display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Enlace ANTHI M34 + Puente Nativo APK + Firebase RTDB -->
+    <div id="pane_anthi" class="view-pane">
+      <div class="scroll-pane">
+        <div class="panel-card">
+          <div class="panel-title">Enlace Deep Link ANTHI M34 (pulso34://abrir)</div>
+          <div class="panel-sub">Parámetros recibidos al abrir desde el botón/escudo M34:</div>
+          <pre id="anthiParamsBox" class="code-box">Cargando parámetros...</pre>
+          <button class="sim-btn cyan" onclick="simulateAnthiDeepLink()">Simular Deep Link ANTHI (Admin · Ev.2)</button>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Puente Nativo AndroidPulsoBridge & Servicio</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button class="sim-btn active" onclick="bridgeStartService()">Iniciar Servicio FGS</button>
+            <button class="sim-btn sos" onclick="bridgeStopService()">Detener Servicio</button>
+          </div>
+          <pre id="bridgeStatusBox" class="code-box">Consultando puente...</pre>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Estructura Firebase Realtime Database</div>
+          <pre class="code-box">{
+  "anthi_m34": {
+    "events": {
+      "1": { "code": "ANTHI-3401", "sector": "Café Madrid", "lat": 7.1524, "lng": -73.1296, "bearing": 12, "speedKmh": 54 },
+      "2": { "code": "ANTHI-3402", "sector": "Autopista Norte", "lat": 7.1645, "lng": -73.1338, "bearing": 340, "speedKmh": 68 }
+    }
+  },
+  "pulso_m34": {
+    "channels": {
+      "1": { "ptt_lock": "uid_driver_07", "tot_sec": 30 },
+      "victim_1": { "speaker_muted_on_emitter": true, "mic_cam_gps": "UPSTREAM" },
+      "admin": { "allowed_roles": ["ADMIN"], "tot_sec": 180 }
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Base de eventos reales en Bucaramanga (Sector Café Madrid / Autopista Norte / Parque Santander)
+  const BASE_EVENTS = [
+    {
+      number: 1,
+      code: "ANTHI-3401",
+      callsign: "Móvil 14",
+      sector: "Sector Café Madrid · Hacia el Norte",
+      lat: 7.1524,
+      lng: -73.1296,
+      bearing: 12,
+      speedKmh: 54,
+      audioDb: 66,
+      responders: [
+        { id: "sup-1", callsign: "Apoyo B-19", lat: 7.1455, lng: -73.1248, etaMin: 3, isSelf: false },
+        { id: "sup-2", callsign: "Unidad M-22", lat: 7.1588, lng: -73.1362, etaMin: 4, isSelf: false }
+      ]
+    },
+    {
+      number: 2,
+      code: "ANTHI-3402",
+      callsign: "Móvil 29",
+      sector: "Autopista Norte Km 4 · Noroeste",
+      lat: 7.1645,
+      lng: -73.1338,
+      bearing: 340,
+      speedKmh: 68,
+      audioDb: 59,
+      responders: [
+        { id: "sup-3", callsign: "Apoyo C-03", lat: 7.1560, lng: -73.1302, etaMin: 3, isSelf: false }
+      ]
+    },
+    {
+      number: 3,
+      code: "ANTHI-3403",
+      callsign: "Móvil 08",
+      sector: "Parque Santander · Cra 27 Sur",
+      lat: 7.1211,
+      lng: -73.1245,
+      bearing: 175,
+      speedKmh: 38,
+      audioDb: 71,
+      responders: [
+        { id: "sup-4", callsign: "Apoyo E-15", lat: 7.1275, lng: -73.1220, etaMin: 2, isSelf: false }
+      ]
+    }
+  ];
+
+  const appState = {
+    uid: "anthi_driver_07",
+    alias: "Móvil 07",
+    role: "DRIVER_UNCONFIRMED",
+    eventCount: 2,
+    events: [],
+    focusedEvent: 1,
+    confirmedEvent: null,
+    selectedChannel: "1",
+    userLocation: { lat: 7.1462, lng: -73.1332 },
+    siVoyDropdownOpen: false,
+    txActive: false,
+    rxActive: false,
+    rxSpeaker: "",
+    totRemaining: 30,
+    totLimit: 30,
+    totInterval: null,
+    rxTimeout: null,
+    audioCtx: null,
+    logs: []
+  };
+
+  let map = null;
+  let mapLayerGroup = null;
+
+  function hasBridge() {
+    return typeof window.AndroidPulsoBridge !== "undefined";
+  }
+
+  function cloneEvents(count) {
+    return BASE_EVENTS.slice(0, count).map(ev => ({
+      ...ev,
+      responders: ev.responders.map(r => ({ ...r }))
+    }));
+  }
+
+  // Inicializar mapa Leaflet con OpenStreetMap
+  function initLeafletMap() {
+    if (typeof L === "undefined") {
+      document.getElementById("tacticalMap").innerHTML =
+        "<div style='padding:24px;color:#94A3B8;font-size:12px;'>Leaflet requiere conexión para cargar tiles OpenStreetMap.</div>";
+      return;
+    }
+
+    map = L.map("tacticalMap", {
+      center: [7.1524, -73.1296],
+      zoom: 14,
+      zoomControl: false,
+      attributionControl: true
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    mapLayerGroup = L.layerGroup().addTo(map);
+    renderMapLayers();
+  }
+
+  function destinationPoint(lat, lng, bearingDeg, distanceMeters) {
+    const R = 6371000;
+    const brng = (bearingDeg * Math.PI) / 180;
+    const lat1 = (lat * Math.PI) / 180;
+    const lng1 = (lng * Math.PI) / 180;
+    const dr = distanceMeters / R;
+
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(brng)
+    );
+    const lng2 =
+      lng1 +
+      Math.atan2(
+        Math.sin(brng) * Math.sin(dr) * Math.cos(lat1),
+        Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2)
+      );
+
+    return [(lat2 * 180) / Math.PI, (lng2 * 180) / Math.PI];
+  }
+
+  function renderMapLayers() {
+    if (!map || !mapLayerGroup) return;
+    mapLayerGroup.clearLayers();
+
+    // Ubicación del usuario / apoyo actual
+    const selfMarker = L.marker([appState.userLocation.lat, appState.userLocation.lng], {
+      icon: L.divIcon({
+        className: "",
+        html: `<div class="sup-marker self"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      })
+    }).bindTooltip(`TÚ · ${appState.alias}`, {
+      permanent: true,
+      direction: "bottom",
+      offset: [0, 8],
+      className: "map-label-tooltip"
+    });
+    mapLayerGroup.addLayer(selfMarker);
+
+    // Si el conductor confirmó "Sí voy", trazar línea de apoyo hacia ese evento
+    if (appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent) {
+      const targetEv = appState.events.find(e => e.number === appState.confirmedEvent);
+      if (targetEv) {
+        const selfIntercept = L.polyline(
+          [
+            [appState.userLocation.lat, appState.userLocation.lng],
+            [targetEv.lat, targetEv.lng]
+          ],
+          { color: "#06B6D4", weight: 2.5, dashArray: "7 6", opacity: 0.9 }
+        );
+        mapLayerGroup.addLayer(selfIntercept);
+      }
+    }
+
+    // Eventos activos + vector de rumbo + apoyos confirmados
+    appState.events.forEach(ev => {
+      const isFocused = ev.number === appState.focusedEvent;
+
+      // Vector de desplazamiento (rumbo + velocidad)
+      const vectorTip = destinationPoint(ev.lat, ev.lng, ev.bearing, isFocused ? 520 : 340);
+      const vectorLine = L.polyline(
+        [
+          [ev.lat, ev.lng],
+          vectorTip
+        ],
+        {
+          color: isFocused ? "#F59E0B" : "#FF3B30",
+          weight: isFocused ? 3.5 : 2,
+          opacity: isFocused ? 0.95 : 0.65
+        }
+      );
+      mapLayerGroup.addLayer(vectorLine);
+
+      // Punta del vector
+      const tipDot = L.circleMarker(vectorTip, {
+        radius: isFocused ? 4 : 3,
+        color: "#F59E0B",
+        fillColor: "#F59E0B",
+        fillOpacity: 1
+      });
+      mapLayerGroup.addLayer(tipDot);
+
+      // Marcadores de apoyos confirmados del evento
+      ev.responders.forEach(unit => {
+        const intercept = L.polyline(
+          [
+            [unit.lat, unit.lng],
+            [ev.lat, ev.lng]
+          ],
+          { color: "#00E5A8", weight: 1.8, dashArray: "5 5", opacity: 0.72 }
+        );
+        mapLayerGroup.addLayer(intercept);
+
+        const supMarker = L.marker([unit.lat, unit.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="sup-marker"></div>`,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          })
+        }).bindTooltip(`${unit.callsign} (${unit.etaMin}m)`, {
+          permanent: isFocused,
+          direction: "top",
+          offset: [0, -6],
+          className: "map-label-tooltip"
+        });
+        mapLayerGroup.addLayer(supMarker);
+      });
+
+      // Marcador SOS del evento
+      const sosIcon = L.divIcon({
+        className: "",
+        html: `<div class="sos-marker-wrap">${isFocused ? '<div class="sos-pulse"></div>' : ''}<div class="sos-core"></div></div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const evMarker = L.marker([ev.lat, ev.lng], { icon: sosIcon })
+        .on("click", () => focusEvent(ev.number))
+        .bindTooltip(`EV.${ev.number} · ${ev.speedKmh} km/h`, {
+          permanent: true,
+          direction: "right",
+          offset: [12, 0],
+          className: "map-label-tooltip"
+        });
+      mapLayerGroup.addLayer(evMarker);
+    });
+  }
+
+  function focusEvent(eventNumber) {
+    const ev = appState.events.find(e => e.number === eventNumber);
+    if (!ev) return;
+    appState.focusedEvent = eventNumber;
+    if (map) {
+      map.flyTo([ev.lat, ev.lng], 15, { duration: 0.65 });
+    }
+    renderAll();
+  }
+
+  function centerOnActiveEvent() {
+    focusEvent(appState.focusedEvent);
+  }
+
+  function centerOnUserUnit() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          appState.userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+          renderMapLayers();
+        },
+        () => {
+          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+        },
+        { enableHighAccuracy: true, timeout: 3000 }
+      );
+    } else if (map) {
+      map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+    }
+  }
+
+  // Reglas de audio PTT y silencio absoluto del Emisor en Alarma
+  function playRadioTone(freqStart, freqEnd, durationMs) {
+    if (appState.role === "ALARM_EMITTER") return; // CERO audio saliente
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!appState.audioCtx) appState.audioCtx = new Ctx();
+      if (appState.audioCtx.state === "suspended") appState.audioCtx.resume();
+
+      const now = appState.audioCtx.currentTime;
+      const osc = appState.audioCtx.createOscillator();
+      const gain = appState.audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freqStart, now);
+      osc.frequency.linearRampToValueAtTime(freqEnd, now + durationMs / 1000);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + durationMs / 1000);
+      osc.connect(gain);
+      gain.connect(appState.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + durationMs / 1000);
+    } catch (_) {}
+  }
+
+  function computeAccess(channel) {
+    if (appState.role === "ALARM_EMITTER") {
+      return {
+        canListen: false,
+        canTransmit: false,
+        maxTot: 0,
+        reason: "SILENCIO TOTAL: altavoz deshabilitado · captura activa"
+      };
+    }
+    if (appState.role === "ADMIN") {
+      return { canListen: true, canTransmit: true, maxTot: 180, reason: null };
+    }
+    if (appState.role === "DRIVER_UNCONFIRMED") {
+      return {
+        canListen: channel !== "ADMIN" && channel !== "VICTIMA",
+        canTransmit: false,
+        maxTot: 30,
+        reason: channel === "ADMIN"
+          ? "Canal exclusivo para Administradores"
+          : "Confirma 'Sí voy' para transmitir"
+      };
+    }
+    // DRIVER_CONFIRMED
+    if (channel === "ADMIN") {
+      return { canListen: false, canTransmit: false, maxTot: 30, reason: "Canal exclusivo Administradores" };
+    }
+    if (channel === "VICTIMA") {
+      return { canListen: true, canTransmit: false, maxTot: 30, reason: "Canal VÍCTIMA: solo monitoreo de cabina" };
+    }
+    if (Number(channel) === appState.confirmedEvent) {
+      return { canListen: true, canTransmit: true, maxTot: 30, reason: null };
+    }
+    return {
+      canListen: true,
+      canTransmit: false,
+      maxTot: 30,
+      reason: `Autorizado solo en Evento ${appState.confirmedEvent}`
+    };
+  }
+
+  function onSiVoyButtonClick() {
+    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER") return;
+    if (appState.events.length <= 1) {
+      const singleNum = appState.events[0].number;
+      if (appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent === singleNum) {
+        setRole("DRIVER_UNCONFIRMED");
+      } else {
+        confirmSiVoyEvent(singleNum);
+      }
+    } else {
+      appState.siVoyDropdownOpen = !appState.siVoyDropdownOpen;
+      renderDock();
+    }
+  }
+
+  function confirmSiVoyEvent(eventNumber) {
+    stopPtt(true);
+    appState.role = "DRIVER_CONFIRMED";
+    appState.confirmedEvent = eventNumber;
+    appState.selectedChannel = String(eventNumber);
+    appState.siVoyDropdownOpen = false;
+    focusEvent(eventNumber);
+    syncNativeBridge();
+    addLog(`EV.${eventNumber}`, "SÍ VOY", `Apoyo confirmado en Evento ${eventNumber} (TOT 30s).`, false);
+    renderAll();
+  }
+
+  function selectChannel(ch) {
+    stopPtt(true);
+    appState.selectedChannel = String(ch);
+    appState.siVoyDropdownOpen = false;
+    if (["1", "2", "3"].includes(appState.selectedChannel)) {
+      focusEvent(Number(appState.selectedChannel));
+    } else {
+      renderAll();
+    }
+  }
+
+  function setEventCount(count) {
+    stopPtt(true);
+    appState.eventCount = count;
+    appState.events = cloneEvents(count);
+    if (appState.focusedEvent > count) appState.focusedEvent = 1;
+    if (appState.confirmedEvent && appState.confirmedEvent > count) {
+      appState.confirmedEvent = null;
+      if (appState.role === "DRIVER_CONFIRMED") appState.role = "DRIVER_UNCONFIRMED";
+    }
+    if (["1", "2", "3"].includes(appState.selectedChannel) && Number(appState.selectedChannel) > count) {
+      appState.selectedChannel = "1";
+    }
+    appState.siVoyDropdownOpen = false;
+    addLog("SIM", "EVENTOS", `Escenario actualizado a ${count} evento(s) activo(s).`, false);
+    renderAll();
+  }
+
+  function setRole(newRole) {
+    stopPtt(true);
+    clearTimeout(appState.rxTimeout);
+    appState.rxActive = false;
+    appState.role = newRole;
+    if (newRole === "DRIVER_CONFIRMED" && !appState.confirmedEvent) {
+      appState.confirmedEvent = appState.focusedEvent;
+      appState.selectedChannel = String(appState.confirmedEvent);
+    }
+    if (newRole === "DRIVER_UNCONFIRMED") {
+      appState.confirmedEvent = null;
+    }
+    if (newRole === "ALARM_EMITTER") {
+      appState.confirmedEvent = null;
+      appState.selectedChannel = "VICTIMA";
+    }
+    appState.siVoyDropdownOpen = false;
+    syncNativeBridge();
+    addLog(
+      newRole === "ALARM_EMITTER" ? "SOS" : "ROL",
+      "CAMBIO ROL",
+      newRole === "ALARM_EMITTER"
+        ? "Emisor en Alarma activo: altavoz silenciado 0%, captura mic/cam/GPS."
+        : `Rol activo: ${roleLabel(newRole)}.`,
+      newRole === "ALARM_EMITTER"
+    );
+    renderAll();
+  }
+
+  function startPtt(ev, startAtRemaining = null) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    const access = computeAccess(appState.selectedChannel);
+    if (!access.canTransmit || appState.txActive) return;
+
+    clearTimeout(appState.rxTimeout);
+    appState.rxActive = false;
+    appState.txActive = true;
+    appState.totLimit = access.maxTot;
+    appState.totRemaining = startAtRemaining !== null ? startAtRemaining : access.maxTot;
+
+    playRadioTone(980, 1320, 110);
+    addLog(`CH ${appState.selectedChannel}`, appState.alias, `PTT abierto (límite ${access.maxTot}s).`, false);
+    renderDock();
+
+    clearInterval(appState.totInterval);
+    appState.totInterval = setInterval(() => {
+      appState.totRemaining -= 1;
+      const warnLimit = appState.totLimit >= 180 ? 10 : 5;
+      if (appState.totRemaining > 0 && appState.totRemaining <= warnLimit) {
+        playRadioTone(1560, 1560, 60);
+      }
+      if (appState.totRemaining <= 0) {
+        playRadioTone(880, 440, 220);
+        addLog(`CH ${appState.selectedChannel}`, "TOT CORTE", `Corte automático al límite de ${appState.totLimit}s.`, true);
+        stopPtt(true);
+      } else {
+        renderDock();
+      }
+    }, 1000);
+  }
+
+  function stopPtt(silentStop = false) {
+    if (!appState.txActive) return;
+    clearInterval(appState.totInterval);
+    appState.txActive = false;
+    if (!silentStop) {
+      playRadioTone(1180, 780, 110);
+    }
+    renderDock();
+  }
+
+  function testTot30() {
+    confirmSiVoyEvent(appState.focusedEvent);
+    switchTab("tactical");
+    startPtt(null, 5);
+  }
+
+  function testTot180() {
+    setRole("ADMIN");
+    appState.selectedChannel = "ADMIN";
+    switchTab("tactical");
+    startPtt(null, 5);
+  }
+
+  function simulateIncomingRx() {
+    if (appState.role === "ALARM_EMITTER") {
+      addLog("SEGURIDAD", "RX BLOQUEADO", "Audio entrante suprimido (0% altavoz) por modo Emisor en Alarma.", true);
+      switchTab("tactical");
+      renderAll();
+      return;
+    }
+    stopPtt(true);
+    playRadioTone(1040, 1260, 95);
+    appState.rxActive = true;
+    appState.rxSpeaker = appState.selectedChannel === "ADMIN"
+      ? "CENTRAL M34 (ADMIN)"
+      : appState.selectedChannel === "VICTIMA"
+        ? `CABINA SOS EV.${appState.focusedEvent}`
+        : "APOYO ALPHA-4";
+    addLog(`CH ${appState.selectedChannel}`, appState.rxSpeaker, "Transmisión RX entrante en curso.", false);
+    switchTab("tactical");
+    renderDock();
+
+    clearTimeout(appState.rxTimeout);
+    appState.rxTimeout = setTimeout(() => {
+      appState.rxActive = false;
+      playRadioTone(1180, 780, 100);
+      renderDock();
+    }, 3200);
+  }
+
+  function syncNativeBridge(startService = true) {
+    const emitter = appState.role === "ALARM_EMITTER";
+    if (hasBridge()) {
+      window.AndroidPulsoBridge.setEmitterSilentMode(emitter);
+      if (startService) {
+        window.AndroidPulsoBridge.startTacticalService(appState.role, String(appState.focusedEvent));
+      }
+    }
+  }
+
+  function roleLabel(role) {
+    switch (role) {
+      case "ADMIN": return "Administrador (180s)";
+      case "DRIVER_CONFIRMED": return `Conductor · Sí voy (Ev.${appState.confirmedEvent || 1})`;
+      case "ALARM_EMITTER": return "Emisor en Alarma (Silencio)";
+      default: return "Conductor · Sin confirmar";
+    }
+  }
+
+  function switchTab(tab) {
+    ["tactical", "sim", "anthi"].forEach(id => {
+      document.getElementById("pane_" + id).classList.toggle("active", id === tab);
+      document.getElementById("tabBtn_" + id).classList.toggle("active", id === tab);
+    });
+    if (tab === "tactical" && map) {
+      setTimeout(() => map.invalidateSize(), 60);
+    }
+    if (tab === "anthi") {
+      refreshAnthiPanel();
+    }
+  }
+
+  function renderAll() {
+    renderHudAndMapPills();
+    renderMapLayers();
+    renderDock();
+    renderSimulatorTab();
+  }
+
+  function renderHudAndMapPills() {
+    const ev = appState.events.find(e => e.number === appState.focusedEvent) || appState.events[0];
+    document.getElementById("anthiBadge").textContent = `ANTHI · ${appState.events.length} EV`;
+    const isEmitter = appState.role === "ALARM_EMITTER";
+    document.getElementById("statusDot").classList.toggle("sos", isEmitter);
+    document.getElementById("silentBanner").classList.toggle("visible", isEmitter);
+
+    if (ev) {
+      document.getElementById("hudEventTitle").textContent = `EV.${ev.number} · ${ev.callsign} (${ev.code})`;
+      document.getElementById("hudEventSector").textContent = `${ev.sector} · ${ev.speedKmh} km/h`;
+      const totalSup = ev.responders.length + (appState.confirmedEvent === ev.number ? 1 : 0);
+      document.getElementById("hudEventMeta").textContent =
+        `${ev.lat.toFixed(4)}, ${ev.lng.toFixed(4)} · Rumbo ${String(ev.bearing).padStart(3, "0")}° · ${totalSup} apoyos`;
+    }
+
+    const bar = document.getElementById("mapEventBar");
+    bar.innerHTML = appState.events.map(e =>
+      `<button class="ev-pill ${e.number === appState.focusedEvent ? "active" : ""}" onclick="focusEvent(${e.number})">Ev.${e.number}</button>`
+    ).join("");
+  }
+
+  function renderDock() {
+    const access = computeAccess(appState.selectedChannel);
+    document.getElementById("roleQuickChip").textContent = roleLabel(appState.role);
+
+    // "Sí voy" button or dropdown
+    const siVoyWrap = document.getElementById("siVoyContainer");
+    const siVoyBtn = document.getElementById("siVoyBtn");
+    const dropdown = document.getElementById("siVoyDropdown");
+
+    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER") {
+      siVoyWrap.style.display = "none";
+    } else {
+      siVoyWrap.style.display = "block";
+      const confirmed = appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent;
+      siVoyBtn.classList.toggle("confirmed", Boolean(confirmed));
+      if (appState.events.length <= 1) {
+        siVoyBtn.textContent = confirmed ? `En ruta · Ev.${appState.confirmedEvent} ✓` : "Sí voy · Ev.1";
+      } else {
+        siVoyBtn.textContent = confirmed ? `En ruta · Ev.${appState.confirmedEvent} ▾` : "Sí voy ▾";
+      }
+      dropdown.classList.toggle("open", appState.siVoyDropdownOpen);
+      dropdown.innerHTML = appState.events.map(ev =>
+        `<button class="sivoy-opt" onclick="confirmSiVoyEvent(${ev.number})"><strong>Evento ${ev.number}</strong> · ${ev.sector}</button>`
+      ).join("");
+    }
+
+    // Channel Keypad (1, 2, 3..., VÍCTIMA, ADMIN)
+    const keypad = document.getElementById("channelKeypad");
+    const keys = [
+      ...appState.events.map(e => ({ id: String(e.number), label: String(e.number), wide: false, cls: "" })),
+      { id: "VICTIMA", label: "VÍCTIMA", wide: true, cls: "victim" },
+      { id: "ADMIN", label: "ADMIN", wide: true, cls: "admin" }
+    ];
+    keypad.innerHTML = keys.map(k => {
+      const active = appState.selectedChannel === k.id;
+      const chAccess = computeAccess(k.id);
+      const isConfirmedEv = appState.role === "DRIVER_CONFIRMED" && String(appState.confirmedEvent) === k.id;
+      const classes = [
+        "ch-key",
+        k.wide ? "wide" : "",
+        k.cls,
+        active ? "active" : "",
+        isConfirmedEv ? "confirmed-dot" : "",
+        (!chAccess.canTransmit && !isConfirmedEv && appState.role !== "ADMIN") ? "locked" : ""
+      ].filter(Boolean).join(" ");
+      return `<button class="${classes}" onclick="selectChannel('${k.id}')">${k.label}</button>`;
+    }).join("");
+
+    // On-Air + TOT bar
+    const onAirCard = document.getElementById("onAirCard");
+    const airTitle = document.getElementById("airTitle");
+    const airSub = document.getElementById("airSub");
+    const totChip = document.getElementById("totChip");
+    const totTrack = document.getElementById("totBarTrack");
+    const totFill = document.getElementById("totBarFill");
+    const pttBtn = document.getElementById("pttBtn");
+
+    const warnLimit = appState.totLimit >= 180 ? 10 : 5;
+    const isWarn = appState.txActive && appState.totRemaining <= warnLimit;
+
+    onAirCard.className = "on-air-card" + (isWarn ? " warn" : appState.txActive ? " tx" : appState.rxActive ? " rx" : "");
+
+    const activeTot = appState.txActive ? appState.totRemaining : access.maxTot;
+    const mm = String(Math.floor(activeTot / 60)).padStart(2, "0");
+    const ss = String(activeTot % 60).padStart(2, "0");
+
+    if (appState.role === "ALARM_EMITTER") {
+      airTitle.textContent = "CAPTURA DISCRETA · ALTAVOZ 0%";
+      airSub.textContent = "Cabina 66 dB · Cámara 15fps · GPS transmitiendo";
+      totChip.textContent = "SILENCIO";
+      totChip.className = "tot-chip warn";
+      totTrack.classList.remove("visible");
+      pttBtn.className = "ptt-btn emitter";
+      pttBtn.textContent = "EMISOR EN ALARMA · CERO REPRODUCCIÓN AUDIO";
+    } else if (appState.txActive) {
+      airTitle.textContent = `AL AIRE: ${appState.alias} · Canal ${appState.selectedChannel}`;
+      airSub.textContent = isWarn ? "¡Advertencia de corte automático TOT!" : "Suelta el botón para cerrar transmisión";
+      totChip.textContent = `TOT ${mm}:${ss}`;
+      totChip.className = isWarn ? "tot-chip warn" : "tot-chip";
+      totTrack.classList.add("visible");
+      totFill.className = isWarn ? "tot-bar-fill warn" : "tot-bar-fill";
+      totFill.style.width = `${Math.max(0, (appState.totRemaining / appState.totLimit) * 100)}%`;
+      pttBtn.className = isWarn ? "ptt-btn tx warn" : "ptt-btn tx";
+      pttBtn.textContent = `AL AIRE (${appState.totRemaining}s) · SUELTA PARA CORTAR`;
+    } else if (appState.rxActive) {
+      airTitle.textContent = `RX EN VIVO: ${appState.rxSpeaker}`;
+      airSub.textContent = `Escuchando Canal ${appState.selectedChannel}`;
+      totChip.textContent = `TOT ${mm}:${ss}`;
+      totChip.className = "tot-chip";
+      totTrack.classList.remove("visible");
+      pttBtn.className = access.canTransmit ? "ptt-btn" : "ptt-btn locked";
+      pttBtn.textContent = access.canTransmit
+        ? `OPRIME Y MANTÉN PARA HABLAR (${appState.selectedChannel})`
+        : (access.reason || "TRANSMISIÓN BLOQUEADA").toUpperCase();
+    } else {
+      const ev = appState.events.find(e => e.number === appState.focusedEvent);
+      airTitle.textContent = appState.selectedChannel === "VICTIMA"
+        ? `Canal VÍCTIMA · Evento ${appState.focusedEvent}`
+        : appState.selectedChannel === "ADMIN"
+          ? "Canal ADMIN · Directrices"
+          : `Canal Evento ${appState.selectedChannel} · Libre`;
+      airSub.textContent = appState.selectedChannel === "VICTIMA" && access.canListen && ev
+        ? `Cabina ${Math.round(ev.audioDb)} dB · Cámara discreta · GPS activo`
+        : (access.reason || `Listo · Máximo ${access.maxTot}s por pulsación`);
+      totChip.textContent = `TOT ${mm}:${ss}`;
+      totChip.className = "tot-chip";
+      totTrack.classList.remove("visible");
+      pttBtn.className = access.canTransmit ? "ptt-btn" : "ptt-btn locked";
+      pttBtn.textContent = access.canTransmit
+        ? `OPRIME Y MANTÉN PARA HABLAR (${appState.selectedChannel})`
+        : (access.reason || "TRANSMISIÓN BLOQUEADA").toUpperCase();
+    }
+  }
+
+  function renderSimulatorTab() {
+    [1, 2, 3].forEach(n => {
+      document.getElementById("simEv" + n).classList.toggle("active", appState.eventCount === n);
+    });
+    ["ADMIN", "DRIVER_CONFIRMED", "DRIVER_UNCONFIRMED", "ALARM_EMITTER"].forEach(r => {
+      document.getElementById("simRole_" + r).classList.toggle("active", appState.role === r);
+    });
+    document.getElementById("logList").innerHTML = appState.logs.slice(0, 12).map(l =>
+      `<div class="log-item ${l.alert ? "alert" : ""}"><strong>[${l.time}] ${l.ch} · ${l.actor}:</strong> ${l.msg}</div>`
+    ).join("");
+  }
+
+  function refreshAnthiPanel() {
+    const params = {
+      uid: appState.uid,
+      alias: appState.alias,
+      role: appState.role,
+      activeEvent: appState.focusedEvent,
+      confirmedEvents: appState.confirmedEvent ? [appState.confirmedEvent] : []
+    };
+    document.getElementById("anthiParamsBox").textContent = JSON.stringify(params, null, 2);
+
+    if (hasBridge()) {
+      const perms = JSON.parse(window.AndroidPulsoBridge.getNativePermissionsStatus());
+      const ver = JSON.parse(window.AndroidPulsoBridge.getApkVersion());
+      document.getElementById("bridgeStatusBox").textContent = JSON.stringify({ ver, perms }, null, 2);
+    } else {
+      document.getElementById("bridgeStatusBox").textContent =
+        "Ejecutando en navegador web (AndroidPulsoBridge activo solo dentro de la APK Android).";
+    }
+  }
+
+  function bridgeStartService() {
+    if (hasBridge()) {
+      window.AndroidPulsoBridge.startTacticalService(appState.role, String(appState.focusedEvent));
+      setTimeout(refreshAnthiPanel, 250);
+    }
+  }
+
+  function bridgeStopService() {
+    if (hasBridge()) {
+      window.AndroidPulsoBridge.stopTacticalService();
+      setTimeout(refreshAnthiPanel, 250);
+    }
+  }
+
+  function simulateAnthiDeepLink() {
+    applyDeepLinkParams({
+      uid: "anthi_admin_01",
+      alias: "Central M34",
+      role: "ADMIN",
+      activeEvent: "2",
+      confirmedEvents: "1,2"
+    });
+    switchTab("tactical");
+  }
+
+  window.onAnthiDeepLinkUpdate = function(params) {
+    applyDeepLinkParams(params);
+  };
+
+  function applyDeepLinkParams(p, startService = true) {
+    if (!p) return;
+    if (p.uid) appState.uid = p.uid;
+    if (p.alias) appState.alias = p.alias;
+    if (p.role) appState.role = p.role;
+    if (p.confirmedEvents) {
+      const first = Number(String(p.confirmedEvents).split(",")[0]);
+      if (first >= 1 && first <= 3) appState.confirmedEvent = first;
+    }
+    if (p.activeEvent) {
+      const evNum = Number(p.activeEvent);
+      if (evNum >= 1 && evNum <= 3) {
+        if (evNum > appState.eventCount) setEventCount(evNum);
+        appState.focusedEvent = evNum;
+        appState.selectedChannel = String(evNum);
+      }
+    }
+    syncNativeBridge(startService);
+    renderAll();
+  }
+
+  function addLog(ch, actor, msg, alert) {
+    const now = new Date();
+    const time = now.toTimeString().slice(0, 8);
+    appState.logs.unshift({ time, ch, actor, msg, alert });
+    if (appState.logs.length > 30) appState.logs.pop();
+  }
+
+  // Simulación de movimiento GPS en tiempo real sobre las vías de Bucaramanga
+  function startTelemetryLoop() {
+    setInterval(() => {
+      appState.events.forEach(ev => {
+        const nextPos = destinationPoint(ev.lat, ev.lng, ev.bearing, 14);
+        ev.lat = nextPos[0];
+        ev.lng = nextPos[1];
+        ev.audioDb = Math.max(46, Math.min(86, ev.audioDb + (Math.random() * 10 - 5)));
+        ev.responders.forEach(u => {
+          u.lat += (ev.lat - u.lat) * 0.04;
+          u.lng += (ev.lng - u.lng) * 0.04;
+        });
+      });
+      renderHudAndMapPills();
+      renderMapLayers();
+    }, 1500);
+  }
+
+  window.addEventListener("pulsoNativePermissionsUpdated", refreshAnthiPanel);
+
+  (function boot() {
+    appState.events = cloneEvents(appState.eventCount);
+    const qs = new URLSearchParams(window.location.search);
+    const launch = {
+      uid: qs.get("uid") || "",
+      alias: qs.get("alias") || "",
+      role: qs.get("role") || "",
+      activeEvent: qs.get("activeEvent") || "",
+      confirmedEvents: qs.get("confirmedEvents") || ""
+    };
+    if (hasBridge()) {
+      try {
+        const nativeLaunch = JSON.parse(window.AndroidPulsoBridge.getAnthiLaunchParams());
+        Object.keys(nativeLaunch).forEach(k => {
+          if (!launch[k]) launch[k] = nativeLaunch[k];
+        });
+      } catch (_) {}
+    }
+    initLeafletMap();
+    applyDeepLinkParams(launch, false);
+    addLog("ANTHI", "SISTEMA", "Mapa Leaflet/OSM centrado en Café Madrid · Autopista Norte.", false);
+    renderAll();
+    startTelemetryLoop();
+  })();
+</script>
+</body>
+</html>

@@ -1,17 +1,7 @@
 <resources>
     <string name="app_name">Pulso M34</string>
-    <string name="ecosystem_tag">ANTHI M34 · TÁCTICO</string>
-    <string name="tab_tactical">Mapa y Radio</string>
-    <string name="tab_simulator">Simulador</string>
-    <string name="tab_architecture">APK / Firebase</string>
-    <string name="ptt_hold_to_talk">MANTÉN PARA HABLAR</string>
-    <string name="ptt_transmitting">AL AIRE · SUELTA PARA CORTAR</string>
-    <string name="ptt_locked_confirm">CONFIRMA "SÍ VOY" PARA TRANSMITIR</string>
-    <string name="ptt_locked_admin">CANAL EXCLUSIVO ADMINISTRADORES</string>
-    <string name="ptt_locked_other_event">AUTORIZADO SOLO EN EVENTO %1$d</string>
-    <string name="ptt_locked_victim_listen">CANAL VÍCTIMA: SOLO MONITOREO</string>
-    <string name="ptt_alarm_emitter_silent">SILENCIO TOTAL · CAPTURA ACTIVA</string>
-    <string name="si_voy_direct">Sí voy · Ev. %1$d</string>
-    <string name="si_voy_dropdown">Sí voy ▾</string>
-    <string name="si_voy_confirmed">En ruta · Ev. %1$d ✓</string>
+    <string name="loading_pulso_title">PULSO M34 · ANTHI</string>
+    <string name="loading_pulso_subtitle">Sincronizando enlace táctico...</string>
+    <string name="service_notification_title">Pulso M34 · Enlace Táctico Activo</string>
+    <string name="service_notification_channel_name">Pulso M34 Radio Táctica</string>
 </resources>

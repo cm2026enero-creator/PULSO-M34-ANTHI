@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.MyApplication" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <style name="Theme.PulsoM34" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/anthi_bg</item>
+        <item name="android:colorBackground">@color/anthi_bg</item>
+        <item name="android:statusBarColor">@color/anthi_bg</item>
+        <item name="android:navigationBarColor">@color/anthi_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/anthi_accent</item>
+        <item name="colorPrimaryDark">@color/anthi_bg</item>
+        <item name="colorAccent">@color/anthi_accent</item>
+    </style>
 </resources>
