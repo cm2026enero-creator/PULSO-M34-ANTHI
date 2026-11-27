@@ -2,156 +2,1372 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PULSO M34 · ANTHI</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#070B12" />
+  <title>Pulso M34 · ANTHI — Mapa Táctico y Radio PTT</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
     :root {
-      --bg-main: #070B12;
-      --bg-card: #0D1522;
-      --accent: #00E5A8;
+      --bg: #070B12;
+      --bg-deep: #0D1522;
+      --surface: #152134;
+      --surface-alt: #1C2C45;
+      --border: #273B59;
+      --emerald: #00E5A8;
       --cyan: #06B6D4;
       --alert: #FF3B30;
-      --warn: #F59E0B;
+      --amber: #F59E0B;
       --text: #F8FAFC;
       --muted: #94A3B8;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; user-select: none; }
-    body { background: var(--bg-main); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Barra superior */
-    header {
-      background: var(--bg-card);
-      border-bottom: 1px solid rgba(0, 229, 168, 0.25);
-      padding: 8px 12px;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .topbar {
+      flex: 0 0 auto;
+      background: var(--bg-deep);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 600;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px rgba(0, 229, 168, 0.8);
+      flex-shrink: 0;
+    }
+
+    .brand-dot.sos {
+      background: var(--alert);
+      box-shadow: 0 0 10px rgba(255, 59, 48, 0.95);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--cyan);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .apk-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--emerald), #00C48F);
+      color: #03150F;
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 229, 168, 0.28);
+    }
+
+    .apk-btn:active {
+      transform: scale(0.97);
+    }
+
+    .rx-test-btn {
+      min-height: 38px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .map-section {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 220px;
+      width: 100%;
+      background: var(--bg-deep);
+      overflow: hidden;
+    }
+
+    #tacticalMap {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      background: #0D1522;
+      z-index: 1;
+    }
+
+    .leaflet-container {
+      width: 100%;
+      height: 100%;
+      background: #0D1522;
+      font-family: inherit;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(7, 11, 18, 0.78) !important;
+      color: var(--muted) !important;
+      font-size: 9px !important;
+    }
+
+    .leaflet-control-attribution a {
+      color: var(--cyan) !important;
+    }
+
+    .map-hud-top {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
+      align-items: flex-start;
+      gap: 8px;
+      z-index: 420;
+      pointer-events: none;
     }
-    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px; }
-    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-    .btn-apk {
-      background: rgba(6, 182, 212, 0.15);
-      border: 1px solid var(--cyan);
+
+    .hud-card {
+      background: rgba(7, 11, 18, 0.90);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 7px 10px;
+      max-width: 68%;
+      pointer-events: auto;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .hud-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .hud-sector {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--amber);
+      margin-top: 2px;
+    }
+
+    .hud-meta {
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       color: var(--cyan);
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .map-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: auto;
+    }
+
+    .map-btn {
+      background: rgba(13, 21, 34, 0.94);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 6px 9px;
+      font-size: 11px;
       font-weight: 700;
-      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
 
-    /* Mapa superior */
-    #map-container { position: relative; flex: 1; width: 100%; background: #05080f; }
-    #map { width: 100%; height: 100%; }
-    .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(115%); }
-    .map-overlay {
-      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 900;
-      display: flex; justify-content: space-between; gap: 6px; pointer-events: none;
+    .map-btn.sos {
+      border-color: rgba(255, 59, 48, 0.7);
+      color: #FFD1CE;
     }
-    .hud-box {
-      background: rgba(13, 21, 34, 0.9); border: 1px solid rgba(255,255,255,0.1);
-      padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; pointer-events: auto;
-    }
-    .hud-alert { color: var(--alert); font-weight: 800; }
-    .event-tabs { display: flex; gap: 4px; margin-top: 4px; }
-    .ev-tab {
-      background: #1E293B; color: var(--text); border: 1px solid transparent;
-      padding: 3px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer;
-    }
-    .ev-tab.active { border-color: var(--alert); background: rgba(255, 59, 48, 0.25); color: #fff; }
 
-    /* Consola inferior de Radio PTT */
-    #radio-dock {
-      background: var(--bg-card);
-      border-top: 1px solid rgba(0, 229, 168, 0.3);
-      padding: 10px 12px 14px;
+    .map-btn.accent {
+      border-color: rgba(0, 229, 168, 0.7);
+      color: var(--emerald);
+    }
+
+    .silent-banner {
+      display: none;
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 44px;
+      z-index: 430;
+      background: rgba(255, 59, 48, 0.94);
+      color: #FFFFFF;
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 0.03em;
+      box-shadow: 0 6px 20px rgba(255, 59, 48, 0.45);
+    }
+
+    .silent-banner.visible {
+      display: block;
+    }
+
+    .map-event-bar {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      z-index: 420;
+      scrollbar-width: none;
+    }
+
+    .map-event-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .ev-pill {
+      background: rgba(13, 21, 34, 0.94);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ev-pill.active {
+      background: rgba(255, 59, 48, 0.22);
+      border-color: var(--alert);
+      color: #FFFFFF;
+    }
+
+    .sos-marker-wrap {
+      position: relative;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sos-pulse {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 59, 48, 0.38);
+      animation: sosPulse 1.4s infinite ease-out;
+    }
+
+    .sos-core {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--alert);
+      border: 2px solid #FFFFFF;
+      z-index: 2;
+    }
+
+    .sup-marker {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--emerald);
+      border: 2px solid #070B12;
+      box-shadow: 0 0 8px rgba(0, 229, 168, 0.8);
+    }
+
+    .sup-marker.self {
+      background: var(--cyan);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.9);
+    }
+
+    .map-label-tooltip {
+      background: rgba(7, 11, 18, 0.92) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      padding: 2px 6px !important;
+      border-radius: 6px !important;
+      box-shadow: none !important;
+    }
+
+    .map-label-tooltip::before {
+      display: none !important;
+    }
+
+    @keyframes sosPulse {
+      0% { transform: scale(0.75); opacity: 0.95; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    .radio-dock {
+      flex: 0 0 auto;
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border);
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       gap: 8px;
-      z-index: 1000;
+      z-index: 550;
     }
-    .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-    select {
-      background: #070B12; color: var(--text); border: 1px solid #334155;
-      padding: 7px 8px; border-radius: 7px; font-size: 0.78rem; font-weight: 600; flex: 1;
-    }
-    .btn-sivoy {
-      background: var(--accent); color: #04130E; border: none;
-      padding: 7px 12px; border-radius: 7px; font-size: 0.78rem; font-weight: 800; cursor: pointer;
-    }
-    .btn-sivoy.confirmed { background: #10B981; color: #fff; }
-    .status-bar {
-      background: #070B12; border: 1px solid #1E293B; border-radius: 8px;
-      padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .timer {
-      font-family: monospace; font-size: 1rem; font-weight: 800;
-      background: #111827; padding: 3px 8px; border-radius: 5px; color: var(--accent);
-    }
-    .channels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .ch-btn {
-      background: #111927; border: 1px solid #263244; color: var(--muted);
-      padding: 9px 4px; border-radius: 7px; font-size: 0.75rem; font-weight: 800; cursor: pointer;
-    }
-    .ch-btn.active { border-color: var(--cyan); color: #fff; background: rgba(6, 182, 212, 0.2); }
-    .ch-btn.victim.active { border-color: var(--alert); background: rgba(255, 59, 48, 0.25); color: #fff; }
-    .ch-btn.admin.active { border-color: var(--warn); background: rgba(245, 158, 11, 0.25); color: #fff; }
 
-    /* Botón PTT */
-    #ptt-btn {
-      width: 100%; padding: 15px; border-radius: 10px; border: 1px solid var(--accent);
-      background: rgba(0, 229, 168, 0.14); color: var(--accent);
-      font-size: 0.9rem; font-weight: 900; letter-spacing: 0.6px; cursor: pointer;
-      transition: 0.12s;
+    .dock-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    #ptt-btn.tx {
-      background: var(--alert); border-color: #fff; color: #fff;
-      box-shadow: 0 0 18px rgba(255, 59, 48, 0.7);
+
+    .role-select {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 40px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
     }
-    #ptt-btn.blocked {
-      background: #111827; border-color: #334155; color: #64748B; cursor: not-allowed;
+
+    .role-select:focus {
+      border-color: var(--cyan);
     }
-    .silent-banner {
-      display: none; background: rgba(255, 59, 48, 0.2); border: 1px solid var(--alert);
-      color: #FCA5A5; text-align: center; font-size: 0.74rem; font-weight: 800;
-      padding: 6px; border-radius: 6px;
+
+    .sivoy-wrap {
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .sivoy-btn {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 229, 168, 0.45);
+      background: rgba(0, 229, 168, 0.14);
+      color: var(--emerald);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .sivoy-btn.confirmed {
+      background: var(--emerald);
+      color: #03150F;
+    }
+
+    .sivoy-btn.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .sivoy-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 6px);
+      width: 225px;
+      background: var(--surface);
+      border: 1px solid var(--emerald);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+      z-index: 700;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sivoy-dropdown.open {
+      display: flex;
+    }
+
+    .sivoy-item {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .sivoy-item.selected {
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    .on-air-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .on-air-card.tx {
+      border-color: var(--emerald);
+      background: rgba(0, 229, 168, 0.08);
+    }
+
+    .on-air-card.rx {
+      border-color: var(--cyan);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .on-air-card.alert {
+      border-color: var(--alert);
+      background: rgba(255, 59, 48, 0.12);
+    }
+
+    .on-air-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .air-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .air-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .tot-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 7px;
+      background: rgba(245, 158, 11, 0.16);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      white-space: nowrap;
+    }
+
+    .tot-bar-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .tot-bar-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--emerald), var(--cyan));
+      transition: width 0.25s linear;
+    }
+
+    .tot-bar-fill.warn {
+      background: linear-gradient(90deg, var(--amber), var(--alert));
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .ch-btn {
+      min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+    }
+
+    .ch-btn span {
+      font-size: 9px;
+      font-weight: 600;
+      opacity: 0.85;
+    }
+
+    .ch-btn.active {
+      background: rgba(0, 229, 168, 0.16);
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    .ch-btn.victim.active {
+      background: rgba(255, 59, 48, 0.18);
+      border-color: var(--alert);
+      color: #FFD1CE;
+    }
+
+    .ch-btn.admin.active {
+      background: rgba(6, 182, 212, 0.18);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .ptt-btn {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 229, 168, 0.55);
+      background: linear-gradient(180deg, rgba(0, 229, 168, 0.26), rgba(0, 229, 168, 0.12));
+      color: var(--emerald);
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .ptt-btn.transmitting {
+      background: linear-gradient(180deg, var(--emerald), #00B884);
+      color: #03150F;
+      box-shadow: 0 0 24px rgba(0, 229, 168, 0.45);
+    }
+
+    .ptt-btn.locked {
+      border-color: rgba(255, 59, 48, 0.45);
+      background: rgba(255, 59, 48, 0.12);
+      color: #FF9C96;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      top: 62px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: var(--surface-alt);
+      border: 1px solid var(--cyan);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 11px;
+      font-size: 12px;
+      font-weight: 600;
+      max-width: calc(100vw - 24px);
+      text-align: center;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 900;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
   </style>
 </head>
 <body>
-
-  <header>
-    <div class="brand"><span class="dot"></span> PULSO M34 · ANTHI</div>
-    <!-- Cambia el enlace # por la URL directa de tu APK cuando la subas a Releases -->
-    <a id="apk-link" href="https://github.com/cm2026enero-creator/PULSO-M34-ANTHI/releases" target="_blank" class="btn-apk">⬇ Descargar APK</a>
-  </header>
-
-  <div id="map-container">
-    <div id="map"></div>
-    <div class="map-overlay">
-      <div class="hud-box">
-        <div id="ev-title" class="hud-alert">EV.1 · Móvil 14 (ANTHI-3401)</div>
-        <div id="ev-desc" style="color:#CBD5E1;margin-top:2px;">Café Madrid · 54 km/h Norte</div>
-        <div class="event-tabs">
-          <button class="ev-tab active" onclick="selectEvent(1)">EV.1</button>
-          <button class="ev-tab" onclick="selectEvent(2)">EV.2</button>
-          <button class="ev-tab" onclick="selectEvent(3)">EV.3</button>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span id="statusDot" class="brand-dot"></span>
+        <div class="brand-text">
+          <div class="brand-title">PULSO M34 · ANTHI</div>
+          <div id="brandSub" class="brand-sub">Bucaramanga · Enlace Táctico</div>
         </div>
       </div>
-      <div class="hud-box" style="text-align:right;">
-        <div style="color:var(--accent);font-weight:700;">OSM Táctico</div>
-        <div style="color:var(--muted);">Móvil 07</div>
+
+      <div class="top-actions">
+        <button type="button" class="rx-test-btn" onclick="simulateIncomingRx()">Probar RX</button>
+        <a id="btnDescargarApk" class="apk-btn" href="https://github.com/cm2026enero-creator/PULSO-M34-ANTHI/releases/download/latest/app-debug.apk" download="app-debug.apk">
+          Descargar APK
+        </a>
       </div>
-    </div>
+    </header>
+
+    <section class="map-section" aria-label="Mapa táctico permanente">
+      <div id="tacticalMap"></div>
+
+      <div class="map-hud-top">
+        <div class="hud-card">
+          <div id="hudTitle" class="hud-title">EV.1 · Móvil 14 (ANTHI-3401)</div>
+          <div id="hudSector" class="hud-sector">Café Madrid · Hacia el Norte · 54 km/h</div>
+          <div id="hudMeta" class="hud-meta">7.1524, -73.1296 · Rumbo 012° · 2 apoyos</div>
+        </div>
+
+        <div class="map-controls">
+          <button type="button" class="map-btn sos" onclick="centerOnActiveEvent()">Centrar Evento</button>
+          <button type="button" class="map-btn accent" onclick="centerOnUserUnit()">Mi Ubicación</button>
+        </div>
+      </div>
+
+      <div id="silentBanner" class="silent-banner">
+        EMISOR EN ALARMA · SILENCIO TOTAL (0% AUDIO ENTRANTE) · CAPTURA MIC / CÁM / GPS ACTIVA
+      </div>
+
+      <div id="mapEventBar" class="map-event-bar"></div>
+    </section>
+
+    <section class="radio-dock" aria-label="Consola de radio PTT">
+      <div class="dock-controls-row">
+        <select id="roleSelect" class="role-select" aria-label="Selector de rol operativo" onchange="onRoleSelectChange(this.value)">
+          <option value="DRIVER_UNCONFIRMED">Rol: Conductor sin confirmar</option>
+          <option value="DRIVER_CONFIRMED">Rol: Conductor confirmado (Sí voy)</option>
+          <option value="ADMIN">Rol: Administrador (TOT 180s)</option>
+          <option value="ALARM_EMITTER">Rol: Emisor en Alarma (Silencio 0%)</option>
+        </select>
+
+        <div class="sivoy-wrap">
+          <button id="siVoyBtn" type="button" class="sivoy-btn" onclick="onSiVoyClick()">Sí voy ▾</button>
+          <div id="siVoyDropdown" class="sivoy-dropdown"></div>
+        </div>
+      </div>
+
+      <div id="onAirCard" class="on-air-card">
+        <div class="on-air-row">
+          <div>
+            <div id="airTitle" class="air-title">Evento 1 · Canal libre</div>
+            <div id="airSub" class="air-sub">Confirma "Sí voy" para hablar en Evento 1</div>
+          </div>
+          <div id="totChip" class="tot-chip">TOT 00:30</div>
+        </div>
+        <div class="tot-bar-track">
+          <div id="totBarFill" class="tot-bar-fill"></div>
+        </div>
+      </div>
+
+      <div id="channelKeypad" class="keypad"></div>
+
+      <button
+        id="pttBtn"
+        type="button"
+        class="ptt-btn locked"
+        onpointerdown="startPtt(event)"
+        onpointerup="stopPtt()"
+        onpointercancel="stopPtt()"
+        onpointerleave="stopPtt()">
+        CONFIRMA "SÍ VOY" PARA TRANSMITIR
+      </button>
+    </section>
   </div>
 
-  <div id="radio-dock">
-    <div id="silent-alert" class="silent-banner">
-      🔇 EMISOR EN ALARMA: Audio entrante silenciado al 100% (Solo captura)
-    </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <div class="row">
-      <select id="role-select" onchange="updateState()">
-        <option value="
+  <script>
+    const APK_DIRECT_URL = "https://github.com/cm2026enero-creator/PULSO-M34-ANTHI/releases/download/latest/app-debug.apk";
+
+    const btnDescargarApk = document.getElementById("btnDescargarApk");
+    btnDescargarApk.href = APK_DIRECT_URL;
+    btnDescargarApk.addEventListener("click", () => {
+      showToast("Descargando app-debug.apk... Si Android lo pide, habilita orígenes desconocidos.");
+    });
+
+    const EVENTS = [
+      {
+        number: 1,
+        code: "ANTHI-3401",
+        callsign: "Móvil 14",
+        sector: "Café Madrid · Hacia el Norte",
+        lat: 7.1524,
+        lng: -73.1296,
+        bearing: 12,
+        speedKmh: 54,
+        responders: [
+          { callsign: "Apoyo B-19", lat: 7.1455, lng: -73.1248, etaMin: 3 },
+          { callsign: "Unidad M-22", lat: 7.1588, lng: -73.1362, etaMin: 4 }
+        ]
+      },
+      {
+        number: 2,
+        code: "ANTHI-3402",
+        callsign: "Móvil 29",
+        sector: "Autopista Norte Km 4 · Noroeste",
+        lat: 7.1645,
+        lng: -73.1338,
+        bearing: 340,
+        speedKmh: 68,
+        responders: [
+          { callsign: "Apoyo C-03", lat: 7.1560, lng: -73.1302, etaMin: 3 }
+        ]
+      },
+      {
+        number: 3,
+        code: "ANTHI-3403",
+        callsign: "Móvil 08",
+        sector: "Parque Santander · Cra 27 Sur",
+        lat: 7.1211,
+        lng: -73.1245,
+        bearing: 175,
+        speedKmh: 38,
+        responders: [
+          { callsign: "Apoyo E-15", lat: 7.1275, lng: -73.1220, etaMin: 2 }
+        ]
+      }
+    ];
+
+    const state = {
+      uid: "anthi_movil_07",
+      alias: "Móvil 07",
+      role: "DRIVER_UNCONFIRMED",
+      focusedEvent: 1,
+      confirmedEvents: [],
+      selectedChannel: "1",
+      siVoyDropdownOpen: false,
+      txActive: false,
+      rxActive: false,
+      rxSpeaker: "",
+      totLimit: 30,
+      totRemaining: 30,
+      totTimer: null,
+      rxTimer: null,
+      audioCtx: null,
+      userLocation: { lat: 7.1462, lng: -73.1332 }
+    };
+
+    let map = null;
+    let mapLayer = null;
+    let toastTimer = null;
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("visible"), 3400);
+    }
+
+    function formatTime(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const mm = String(Math.floor(s / 60)).padStart(2, "0");
+      const ss = String(s % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
+
+    function destinationPoint(lat, lng, bearingDeg, meters) {
+      const R = 6371000;
+      const brng = (bearingDeg * Math.PI) / 180;
+      const lat1 = (lat * Math.PI) / 180;
+      const lng1 = (lng * Math.PI) / 180;
+      const dr = meters / R;
+      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(brng));
+      const lng2 = lng1 + Math.atan2(
+        Math.sin(brng) * Math.sin(dr) * Math.cos(lat1),
+        Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2)
+      );
+      return [(lat2 * 180) / Math.PI, (lng2 * 180) / Math.PI];
+    }
+
+    function initMap() {
+      if (typeof L === "undefined") {
+        document.getElementById("tacticalMap").innerHTML =
+          '<div style="padding:20px;color:#94A3B8;font-size:12px;">No se pudo cargar Leaflet. Verifica tu conexión a internet.</div>';
+        return;
+      }
+
+      map = L.map("tacticalMap", {
+        center: [7.1524, -73.1296],
+        zoom: 14,
+        zoomControl: false,
+        attributionControl: true
+      });
+
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(map);
+
+      mapLayer = L.layerGroup().addTo(map);
+      renderMap();
+
+      setTimeout(() => map && map.invalidateSize(), 180);
+      window.addEventListener("resize", () => map && map.invalidateSize());
+      window.addEventListener("orientationchange", () => setTimeout(() => map && map.invalidateSize(), 250));
+    }
+
+    function renderMap() {
+      if (!map || !mapLayer) return;
+      mapLayer.clearLayers();
+
+      const selfMarker = L.marker([state.userLocation.lat, state.userLocation.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: '<div class="sup-marker self"></div>',
+          iconSize: [13, 13],
+          iconAnchor: [6, 6]
+        })
+      }).bindTooltip(`TÚ · ${state.alias}`, {
+        permanent: true,
+        direction: "bottom",
+        offset: [0, 7],
+        className: "map-label-tooltip"
+      });
+      mapLayer.addLayer(selfMarker);
+
+      if (state.role === "DRIVER_CONFIRMED" && state.confirmedEvents.length > 0) {
+        const targetEv = EVENTS.find(e => e.number === state.confirmedEvents[0]);
+        if (targetEv) {
+          mapLayer.addLayer(L.polyline(
+            [[state.userLocation.lat, state.userLocation.lng], [targetEv.lat, targetEv.lng]],
+            { color: "#06B6D4", weight: 2.5, dashArray: "6 5", opacity: 0.9 }
+          ));
+        }
+      }
+
+      EVENTS.forEach(ev => {
+        const isFocused = ev.number === state.focusedEvent;
+        const tip = destinationPoint(ev.lat, ev.lng, ev.bearing, isFocused ? 500 : 320);
+
+        mapLayer.addLayer(L.polyline([[ev.lat, ev.lng], tip], {
+          color: isFocused ? "#F59E0B" : "#FF3B30",
+          weight: isFocused ? 3.5 : 2,
+          opacity: isFocused ? 0.95 : 0.7
+        }));
+
+        ev.responders.forEach(unit => {
+          mapLayer.addLayer(L.polyline([[unit.lat, unit.lng], [ev.lat, ev.lng]], {
+            color: "#00E5A8",
+            weight: 2,
+            dashArray: "5 5",
+            opacity: 0.78
+          }));
+
+          const sup = L.marker([unit.lat, unit.lng], {
+            icon: L.divIcon({
+              className: "",
+              html: '<div class="sup-marker"></div>',
+              iconSize: [13, 13],
+              iconAnchor: [6, 6]
+            })
+          }).bindTooltip(`${unit.callsign} (${unit.etaMin}m)`, {
+            permanent: isFocused,
+            direction: "top",
+            offset: [0, -6],
+            className: "map-label-tooltip"
+          });
+          mapLayer.addLayer(sup);
+        });
+
+        const sosMarker = L.marker([ev.lat, ev.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="sos-marker-wrap">${isFocused ? '<div class="sos-pulse"></div>' : ''}<div class="sos-core"></div></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          })
+        })
+          .on("click", () => focusEvent(ev.number))
+          .bindTooltip(`EV.${ev.number} · ${ev.speedKmh} km/h`, {
+            permanent: true,
+            direction: "right",
+            offset: [12, 0],
+            className: "map-label-tooltip"
+          });
+
+        mapLayer.addLayer(sosMarker);
+      });
+    }
+
+    function focusEvent(eventNumber) {
+      const ev = EVENTS.find(e => e.number === eventNumber);
+      if (!ev) return;
+      state.focusedEvent = eventNumber;
+      if (map) map.flyTo([ev.lat, ev.lng], 15, { duration: 0.55 });
+      renderAll();
+    }
+
+    function centerOnActiveEvent() {
+      focusEvent(state.focusedEvent);
+    }
+
+    function centerOnUserUnit() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            if (map) map.flyTo([state.userLocation.lat, state.userLocation.lng], 15, { duration: 0.55 });
+            renderMap();
+          },
+          () => {
+            if (map) map.flyTo([state.userLocation.lat, state.userLocation.lng], 15, { duration: 0.55 });
+          },
+          { enableHighAccuracy: true, timeout: 3000 }
+        );
+      } else if (map) {
+        map.flyTo([state.userLocation.lat, state.userLocation.lng], 15, { duration: 0.55 });
+      }
+    }
+
+    function playRadioTone(freqStart, freqEnd, durationMs) {
+      if (state.role === "ALARM_EMITTER") return;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!state.audioCtx) state.audioCtx = new Ctx();
+        if (state.audioCtx.state === "suspended") state.audioCtx.resume();
+
+        const now = state.audioCtx.currentTime;
+        const osc = state.audioCtx.createOscillator();
+        const gain = state.audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freqStart, now);
+        osc.frequency.linearRampToValueAtTime(freqEnd, now + durationMs / 1000);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + durationMs / 1000);
+        osc.connect(gain);
+        gain.connect(state.audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + durationMs / 1000);
+      } catch (_) {}
+    }
+
+    function computeAccess(channel) {
+      if (state.role === "ALARM_EMITTER") {
+        return {
+          canListen: false,
+          canTransmit: false,
+          maxTot: 0,
+          reason: "SILENCIO TOTAL: 0% audio entrante · captura activa"
+        };
+      }
+      if (state.role === "ADMIN") {
+        return { canListen: true, canTransmit: true, maxTot: 180, reason: null };
+      }
+      if (state.role === "DRIVER_UNCONFIRMED") {
+        return {
+          canListen: channel !== "ADMIN" && channel !== "VICTIMA",
+          canTransmit: false,
+          maxTot: 30,
+          reason: channel === "ADMIN"
+            ? "Canal exclusivo Administradores"
+            : 'Confirma "Sí voy" para transmitir'
+        };
+      }
+      if (channel === "ADMIN") {
+        return { canListen: false, canTransmit: false, maxTot: 30, reason: "Canal exclusivo Administradores" };
+      }
+      if (channel === "VICTIMA") {
+        return { canListen: true, canTransmit: false, maxTot: 30, reason: "Canal VÍCTIMA: solo monitoreo de cabina" };
+      }
+      const evNum = Number(channel);
+      if (state.confirmedEvents.includes(evNum)) {
+        return { canListen: true, canTransmit: true, maxTot: 30, reason: null };
+      }
+      return {
+        canListen: true,
+        canTransmit: false,
+        maxTot: 30,
+        reason: `Autorizado solo en Evento ${state.confirmedEvents.join(", ") || state.focusedEvent}`
+      };
+    }
+
+    function onRoleSelectChange(newRole) {
+      stopPtt(true);
+      clearTimeout(state.rxTimer);
+      state.rxActive = false;
+      state.siVoyDropdownOpen = false;
+      state.role = newRole;
+
+      if (newRole === "DRIVER_CONFIRMED") {
+        if (state.confirmedEvents.length === 0) state.confirmedEvents = [state.focusedEvent];
+        state.selectedChannel = String(state.confirmedEvents[0]);
+      } else if (newRole === "DRIVER_UNCONFIRMED") {
+        state.confirmedEvents = [];
+        if (state.selectedChannel === "ADMIN" || state.selectedChannel === "VICTIMA") {
+          state.selectedChannel = String(state.focusedEvent);
+        }
+      } else if (newRole === "ALARM_EMITTER") {
+        state.confirmedEvents = [];
+        state.selectedChannel = "VICTIMA";
+        showToast("Emisor en Alarma: altavoz bloqueado al 0% para máxima discreción.");
+      } else if (newRole === "ADMIN") {
+        state.selectedChannel = "ADMIN";
+      }
+
+      renderAll();
+    }
+
+    function onSiVoyClick() {
+      if (state.role === "ADMIN" || state.role === "ALARM_EMITTER") return;
+      if (EVENTS.length <= 1) {
+        confirmSiVoyEvent(EVENTS[0].number);
+      } else {
+        state.siVoyDropdownOpen = !state.siVoyDropdownOpen;
+        renderDock();
+      }
+    }
+
+    function confirmSiVoyEvent(eventNumber) {
+      stopPtt(true);
+      state.role = "DRIVER_CONFIRMED";
+      state.confirmedEvents = [eventNumber];
+      state.selectedChannel = String(eventNumber);
+      state.siVoyDropdownOpen = false;
+      focusEvent(eventNumber);
+      showToast(`Confirmado "Sí voy" en Evento ${eventNumber} (TOT 30s).`);
+    }
+
+    function selectChannel(ch) {
+      stopPtt(true);
+      state.selectedChannel = String(ch);
+      state.siVoyDropdownOpen = false;
+      if (["1", "2", "3"].includes(state.selectedChannel)) {
+        focusEvent(Number(state.selectedChannel));
+      } else {
+        renderAll();
+      }
+    }
+
+    function startPtt(event) {
+      if (event) event.preventDefault();
+      const access = computeAccess(state.selectedChannel);
+      if (!access.canTransmit) {
+        showToast(access.reason || "Transmisión bloqueada.");
+        return;
+      }
+      if (state.txActive) return;
+
+      clearTimeout(state.rxTimer);
+      state.rxActive = false;
+      state.txActive = true;
+      state.totLimit = access.maxTot;
+      state.totRemaining = access.maxTot;
+      playRadioTone(880, 1180, 90);
+
+      clearInterval(state.totTimer);
+      state.totTimer = setInterval(() => {
+        state.totRemaining -= 1;
+        if (state.totRemaining <= 0) {
+          playRadioTone(420, 260, 200);
+          stopPtt(true);
+          showToast(`Corte automático TOT (${state.totLimit}s).`);
+        } else {
+          renderDock();
+        }
+      }, 1000);
+
+      renderDock();
+    }
+
+    function stopPtt(silentStop = false) {
+      if (!state.txActive) return;
+      clearInterval(state.totTimer);
+      state.txActive = false;
+      if (!silentStop) {
+        playRadioTone(660, 440, 80);
+      }
+      const access = computeAccess(state.selectedChannel);
+      state.totLimit = access.maxTot;
+      state.totRemaining = access.maxTot;
+      renderDock();
+    }
+
+    function simulateIncomingRx() {
+      if (state.role === "ALARM_EMITTER") {
+        showToast("RX bloqueado: el Emisor en Alarma mantiene 0% audio entrante.");
+        return;
+      }
+      if (state.txActive) return;
+
+      state.rxActive = true;
+      state.rxSpeaker = state.selectedChannel === "ADMIN" ? "Central M34" : "Apoyo B-19";
+      playRadioTone(540, 740, 110);
+      clearTimeout(state.rxTimer);
+      state.rxTimer = setTimeout(() => {
+        state.rxActive = false;
+        state.rxSpeaker = "";
+        renderDock();
+      }, 3000);
+      renderDock();
+    }
+
+    function renderHud() {
+      const ev = EVENTS.find(e => e.number === state.focusedEvent) || EVENTS[0];
+      document.getElementById("hudTitle").textContent = `EV.${ev.number} · ${ev.callsign} (${ev.code})`;
+      document.getElementById("hudSector").textContent = `${ev.sector} · ${ev.speedKmh} km/h`;
+      document.getElementById("hudMeta").textContent = `${ev.lat.toFixed(4)}, ${ev.lng.toFixed(4)} · Rumbo ${String(ev.bearing).padStart(3, "0")}° · ${ev.responders.length} apoyos`;
+
+      const bar = document.getElementById("mapEventBar");
+      bar.innerHTML = EVENTS.map(item => `
+        <button type="button" class="ev-pill ${item.number === state.focusedEvent ? "active" : ""}" onclick="focusEvent(${item.number})">
+          EV.${item.number} · ${item.callsign}
+        </button>
+      `).join("");
+
+      const isEmitter = state.role === "ALARM_EMITTER";
+      document.getElementById("silentBanner").classList.toggle("visible", isEmitter);
+      document.getElementById("statusDot").classList.toggle("sos", isEmitter);
+      document.getElementById("brandSub").textContent = isEmitter
+        ? "EMISOR EN ALARMA · 0% ALTAVOZ"
+        : `${state.alias} · Bucaramanga`;
+    }
+
+    function renderDock() {
+      document.getElementById("roleSelect").value = state.role;
+
+      const siVoyBtn = document.getElementById("siVoyBtn");
+      const dropdown = document.getElementById("siVoyDropdown");
+
+      if (state.role === "ADMIN" || state.role === "ALARM_EMITTER") {
+        siVoyBtn.className = "sivoy-btn disabled";
+        siVoyBtn.textContent = state.role === "ADMIN" ? "Acceso Admin" : "Silencio 0%";
+      } else if (state.role === "DRIVER_CONFIRMED") {
+        siVoyBtn.className = "sivoy-btn confirmed";
+        siVoyBtn.textContent = `Sí voy (Ev.${state.confirmedEvents[0] || 1}) ▾`;
+      } else {
+        siVoyBtn.className = "sivoy-btn";
+        siVoyBtn.textContent = "Sí voy ▾";
+      }
+
+      dropdown.classList.toggle("open", state.siVoyDropdownOpen);
+      dropdown.innerHTML = EVENTS.map(ev => `
+        <button type="button" class="sivoy-item ${state.confirmedEvents.includes(ev.number) ? "selected" : ""}" onclick="confirmSiVoyEvent(${ev.number})">
+          Evento ${ev.number} · ${ev.callsign}
+        </button>
+      `).join("");
+
+      const keypad = document.getElementById("channelKeypad");
+      const channels = [
+        ...EVENTS.map(ev => ({ id: String(ev.number), label: String(ev.number), sub: `EV.${ev.number}`, cls: "" })),
+        { id: "VICTIMA", label: "VÍCTIMA", sub: "Cabina", cls: "victim" },
+        { id: "ADMIN", label: "ADMIN", sub: "180s", cls: "admin" }
+      ];
+      keypad.innerHTML = channels.map(ch => `
+        <button type="button" class="ch-btn ${ch.cls} ${state.selectedChannel === ch.id ? "active" : ""}" onclick="selectChannel('${ch.id}')">
+          ${ch.label}<span>${ch.sub}</span>
+        </button>
+      `).join("");
+
+      const access = computeAccess(state.selectedChannel);
+      const card = document.getElementById("onAirCard");
+      const airTitle = document.getElementById("airTitle");
+      const airSub = document.getElementById("airSub");
+      const totChip = document.getElementById("totChip");
+      const totFill = document.getElementById("totBarFill");
+      const pttBtn = document.getElementById("pttBtn");
+
+      const chTitle = state.selectedChannel === "ADMIN"
+        ? "Canal ADMIN"
+        : state.selectedChannel === "VICTIMA"
+          ? "Canal VÍCTIMA"
+          : `Evento ${state.selectedChannel}`;
+
+      card.className = "on-air-card";
+      if (state.role === "ALARM_EMITTER") {
+        card.classList.add("alert");
+        airTitle.textContent = "EMISOR EN ALARMA · SILENCIO TOTAL";
+        airSub.textContent = "0% audio entrante · captura mic/cámara/GPS activa";
+        totChip.textContent = "0% RX";
+        totFill.style.width = "100%";
+        totFill.classList.add("warn");
+      } else if (state.txActive) {
+        card.classList.add("tx");
+        airTitle.textContent = `${chTitle} · AL AIRE (${state.alias})`;
+        airSub.textContent = "Transmitiendo PTT en vivo...";
+        totChip.textContent = `TOT ${formatTime(state.totRemaining)}`;
+        const pct = Math.max(0, (state.totRemaining / state.totLimit) * 100);
+        totFill.style.width = `${pct}%`;
+        totFill.classList.toggle("warn", state.totRemaining <= 7);
+      } else if (state.rxActive) {
+        card.classList.add("rx");
+        airTitle.textContent = `${chTitle} · RX (${state.rxSpeaker})`;
+        airSub.textContent = "Recibiendo audio táctico";
+        totChip.textContent = `TOT ${formatTime(access.maxTot)}`;
+        totFill.style.width = "100%";
+        totFill.classList.remove("warn");
+      } else {
+        airTitle.textContent = `${chTitle} · Canal libre`;
+        airSub.textContent = access.canTransmit
+          ? `Listo para transmitir (máx. ${access.maxTot}s)`
+          : (access.reason || "Solo escucha");
+        totChip.textContent = `TOT ${formatTime(access.maxTot)}`;
+        totFill.style.width = "100%";
+        totFill.classList.remove("warn");
+      }
+
+      if (state.txActive) {
+        pttBtn.className = "ptt-btn transmitting";
+        pttBtn.textContent = "TRANSMITIENDO · SUELTA PARA CORTAR";
+      } else if (access.canTransmit) {
+        pttBtn.className = "ptt-btn";
+        pttBtn.textContent = "OPRIME PARA HABLAR (PTT)";
+      } else {
+        pttBtn.className = "ptt-btn locked";
+        pttBtn.textContent = state.role === "ALARM_EMITTER"
+          ? "SILENCIO TOTAL EN ALARMA (0% AUDIO)"
+          : 'CONFIRMA "SÍ VOY" PARA TRANSMITIR';
+      }
+    }
+
+    function renderAll() {
+      renderHud();
+      renderMap();
+      renderDock();
+    }
+
+    function normalizeRole(raw) {
+      const r = String(raw || "").trim().toLowerCase();
+      if (r === "admin" || r === "administrador") return "ADMIN";
+      if (r === "conductor_confirmado" || r === "driver_confirmed") return "DRIVER_CONFIRMED";
+      if (r === "emisor_alarma" || r === "alarm_emitter" || r === "victima" || r === "sos") return "ALARM_EMITTER";
+      if (r === "conductor_sin_confirmar" || r === "driver_unconfirmed") return "DRIVER_UNCONFIRMED";
+      return null;
+    }
+
+    function applyIncomingParams(params) {
+      if (!params) return;
+      if (params.uid) state.uid = String(params.uid);
+      if (params.alias || params.nombre || params.movil) {
+        state.alias = String(params.alias || params.nombre || params.movil);
+      }
+      const normRole = normalizeRole(params.role);
+      if (normRole) state.role = normRole;
+
+      if (params.confirmedEvents) {
+        const list = String(params.confirmedEvents)
+          .split(",")
+          .map(n => Number(n.trim()))
+          .filter(n => n >= 1 && n <= 3);
+        if (list.length > 0) {
+          state.confirmedEvents = list;
+          if (!normRole) state.role = "DRIVER_CONFIRMED";
+        }
+      }
+
+      const activeEv = Number(params.activeEvent || params.focusedEvent || 0);
+      if (activeEv >= 1 && activeEv <= 3) {
+        state.focusedEvent = activeEv;
+      } else if (state.confirmedEvents.length > 0) {
+        state.focusedEvent = state.confirmedEvents[0];
+      }
+
+      if (state.role === "ALARM_EMITTER") {
+        state.selectedChannel = "VICTIMA";
+      } else if (state.role === "ADMIN" && !activeEv) {
+        state.selectedChannel = "ADMIN";
+      } else {
+        state.selectedChannel = String(state.focusedEvent);
+      }
+    }
+
+    window.addEventListener("message", event => {
+      const data = event && event.data;
+      if (data && (data.type === "ANTHI_PULSO_INIT" || data.type === "ANTHI_M34_OPEN")) {
+        applyIncomingParams(data.payload || data);
+        renderAll();
+      }
+    });
+
+    (function boot() {
+      const search = new URLSearchParams(window.location.search);
+      const hashRaw = window.location.hash ? window.location.hash.replace(/^#/, "") : "";
+      const incoming = {};
+      search.forEach((v, k) => { if (v) incoming[k] = v; });
+      if (hashRaw.includes("=")) {
+        const hParams = new URLSearchParams(hashRaw.includes("?") ? hashRaw.split("?")[1] : hashRaw);
+        hParams.forEach((v, k) => { if (v && !incoming[k]) incoming[k] = v; });
+      }
+      if (Object.keys(incoming).length > 0) {
+        applyIncomingParams(incoming);
+      }
+
+      initMap();
+      renderAll();
+
+      setInterval(() => {
+        EVENTS.forEach(ev => {
+          const next = destinationPoint(ev.lat, ev.lng, ev.bearing, 12);
+          ev.lat = next[0];
+          ev.lng = next[1];
+          ev.responders.forEach(u => {
+            u.lat += (ev.lat - u.lat) * 0.04;
+            u.lng += (ev.lng - u.lng) * 0.04;
+          });
+        });
+        renderHud();
+        renderMap();
+      }, 1800);
+    })();
+  </script>
+</body>
+</html>
