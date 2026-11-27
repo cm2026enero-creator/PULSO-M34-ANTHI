@@ -115,6 +115,9 @@ class MainActivity : AppCompatActivity() {
         requestEssentialRuntimePermissions()
 
         val anthiParams = extractAndPersistAnthiParams(intent)
+        if (isEmitterRole(anthiParams["role"])) {
+            applyStrictEmitterSilentMode(true)
+        }
         loadPulsoWebApp(anthiParams)
     }
 
@@ -129,9 +132,7 @@ class MainActivity : AppCompatActivity() {
                 null
             )
         }
-        if (updatedParams["role"].equals("ALARM_EMITTER", ignoreCase = true)) {
-            applyStrictEmitterSilentMode(true)
-        }
+        applyStrictEmitterSilentMode(isEmitterRole(updatedParams["role"]))
     }
 
     override fun onDestroy() {
@@ -321,43 +322,64 @@ class MainActivity : AppCompatActivity() {
     private fun extractAndPersistAnthiParams(intent: Intent?): Map<String, String> {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val uri = intent?.data
-        val keys = listOf("uid", "alias", "role", "activeEvent", "confirmedEvents")
+        val fragmentParams = parseFragmentQueryParams(uri?.fragment)
+        val resolved = linkedMapOf<String, String>()
 
-        val resolved = mutableMapOf<String, String>()
-        val editor = prefs.edit()
-
-        keys.forEach { key ->
+        ANTHI_PARAM_KEYS.forEach { key ->
             val fromUri = uri?.getQueryParameter(key)
+            val fromFragment = fragmentParams[key]
             val fromExtra = intent?.getStringExtra(key)
-            val fromPrefs = prefs.getString(key, null)
-            val finalValue = when {
+            val value = when {
                 !fromUri.isNullOrBlank() -> fromUri
+                !fromFragment.isNullOrBlank() -> fromFragment
                 !fromExtra.isNullOrBlank() -> fromExtra
-                !fromPrefs.isNullOrBlank() -> fromPrefs
-                else -> defaultParamValue(key)
+                else -> null
             }
-            resolved[key] = finalValue
-            editor.putString(key, finalValue)
+            if (!value.isNullOrBlank()) {
+                resolved[key] = value
+            }
+        }
+
+        val editor = prefs.edit().clear()
+        if (resolved.isEmpty()) {
+            // Inicio directo sin parámetros ANTHI: mantener modo simulador limpio por defecto
+            editor.apply()
+            return emptyMap()
+        }
+
+        resolved.forEach { (key, value) ->
+            editor.putString(key, value)
         }
         editor.apply()
         return resolved
     }
 
-    private fun readPersistedAnthiParams(): Map<String, String> {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val keys = listOf("uid", "alias", "role", "activeEvent", "confirmedEvents")
-        return keys.associateWith { key ->
-            prefs.getString(key, null) ?: defaultParamValue(key)
+    private fun parseFragmentQueryParams(fragment: String?): Map<String, String> {
+        if (fragment.isNullOrBlank()) return emptyMap()
+        val queryPart = if (fragment.contains("?")) fragment.substringAfter("?") else fragment
+        if (!queryPart.contains("=")) return emptyMap()
+        val fakeUri = Uri.parse("https://pulso.local?$queryPart")
+        val map = mutableMapOf<String, String>()
+        fakeUri.queryParameterNames.forEach { name ->
+            fakeUri.getQueryParameter(name)?.takeIf { it.isNotBlank() }?.let { map[name] = it }
         }
+        return map
     }
 
-    private fun defaultParamValue(key: String): String = when (key) {
-        "uid" -> "anthi_driver_07"
-        "alias" -> "Móvil 07"
-        "role" -> "DRIVER_UNCONFIRMED"
-        "activeEvent" -> "1"
-        "confirmedEvents" -> ""
-        else -> ""
+    private fun readPersistedAnthiParams(): Map<String, String> {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val result = linkedMapOf<String, String>()
+        ANTHI_PARAM_KEYS.forEach { key ->
+            prefs.getString(key, null)?.takeIf { it.isNotBlank() }?.let { result[key] = it }
+        }
+        return result
+    }
+
+    private fun isEmitterRole(role: String?): Boolean {
+        return when (role?.trim()?.lowercase()) {
+            "emisor_alarma", "alarm_emitter", "victima", "sos" -> true
+            else -> false
+        }
     }
 
     private fun requestEssentialRuntimePermissions() {
@@ -485,7 +507,8 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 applyStrictEmitterSilentMode(enabled)
                 if (enabled && PulsoRadioService.isRunning) {
-                    startTacticalService("ALARM_EMITTER", readPersistedAnthiParams()["activeEvent"])
+                    val activeEv = readPersistedAnthiParams()["activeEvent"] ?: "1"
+                    startTacticalService("ALARM_EMITTER", activeEv)
                 }
             }
         }
@@ -516,5 +539,17 @@ class MainActivity : AppCompatActivity() {
         private const val LOCAL_ASSET_FALLBACK_URL = "file:///android_asset/pulso_m34.html"
         private const val JS_BRIDGE_NAME = "AndroidPulsoBridge"
         private const val PREFS_NAME = "pulso_m34_anthi_prefs"
+        private val ANTHI_PARAM_KEYS = listOf(
+            "uid",
+            "alias",
+            "nombre",
+            "movil",
+            "role",
+            "events",
+            "activeEvents",
+            "activeEvent",
+            "focusedEvent",
+            "confirmedEvents"
+        )
     }
 }

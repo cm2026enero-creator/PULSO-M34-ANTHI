@@ -854,10 +854,15 @@
     <div id="pane_anthi" class="view-pane">
       <div class="scroll-pane">
         <div class="panel-card">
-          <div class="panel-title">Enlace Deep Link ANTHI M34 (pulso34://abrir)</div>
-          <div class="panel-sub">Parámetros recibidos al abrir desde el botón/escudo M34:</div>
+          <div class="panel-title">Enlace Botón / Escudo M34 (ANTHI -> Pulso M34)</div>
+          <div class="panel-sub">Soporta Query String, Hash (#), postMessage y Deep Link (pulso34://abrir) con parámetros reales o modo prueba sin parámetros:</div>
           <pre id="anthiParamsBox" class="code-box">Cargando parámetros...</pre>
-          <button class="sim-btn cyan" onclick="simulateAnthiDeepLink()">Simular Deep Link ANTHI (Admin · Ev.2)</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button class="sim-btn cyan" onclick="simulateAnthiLaunch('admin')">Simular Admin (Ev.2)</button>
+            <button class="sim-btn active" onclick="simulateAnthiLaunch('conductor_confirmado')">Simular Sí voy (Ev.1)</button>
+            <button class="sim-btn" onclick="simulateAnthiLaunch('conductor_sin_confirmar')">Sin confirmar</button>
+            <button class="sim-btn sos" onclick="simulateAnthiLaunch('emisor_alarma')">Emisor en Alarma</button>
+          </div>
         </div>
 
         <div class="panel-card">
@@ -948,6 +953,7 @@
     events: [],
     focusedEvent: 1,
     confirmedEvent: null,
+    confirmedEventsList: [],
     selectedChannel: "1",
     userLocation: { lat: 7.1462, lng: -73.1332 },
     siVoyDropdownOpen: false,
@@ -959,7 +965,8 @@
     totInterval: null,
     rxTimeout: null,
     audioCtx: null,
-    logs: []
+    logs: [],
+    launchSource: "default"
   };
 
   let map = null;
@@ -974,6 +981,52 @@
       ...ev,
       responders: ev.responders.map(r => ({ ...r }))
     }));
+  }
+
+  function normalizeAnthiRole(rawRole) {
+    const r = String(rawRole || "").trim().toLowerCase();
+    if (r === "admin" || r === "administrador") return "ADMIN";
+    if (r === "conductor_confirmado" || r === "driver_confirmed" || r === "si_voy") return "DRIVER_CONFIRMED";
+    if (r === "emisor_alarma" || r === "alarm_emitter" || r === "victima" || r === "sos") return "ALARM_EMITTER";
+    if (r === "conductor_sin_confirmar" || r === "driver_unconfirmed") return "DRIVER_UNCONFIRMED";
+    return null;
+  }
+
+  function parseEventsPayload(rawEvents) {
+    if (!rawEvents) return null;
+    if (Array.isArray(rawEvents)) return rawEvents;
+    const str = String(rawEvents).trim();
+    if (!str) return null;
+    if (str.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(str);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (_) {}
+    }
+    if (/^\d+$/.test(str)) {
+      const n = Math.max(1, Math.min(3, Number(str)));
+      return cloneEvents(n);
+    }
+    const nums = str.split(",").map(x => Number(x.trim())).filter(n => n >= 1 && n <= 3);
+    if (nums.length > 0) {
+      return nums.map(n => cloneEvents(3).find(e => e.number === n)).filter(Boolean);
+    }
+    return null;
+  }
+
+  function parseConfirmedList(rawConfirmed) {
+    if (!rawConfirmed) return [];
+    if (Array.isArray(rawConfirmed)) {
+      return rawConfirmed.map(Number).filter(n => n >= 1 && n <= 3);
+    }
+    const str = String(rawConfirmed).trim();
+    if (str.startsWith("[")) {
+      try {
+        const arr = JSON.parse(str);
+        if (Array.isArray(arr)) return arr.map(Number).filter(n => n >= 1 && n <= 3);
+      } catch (_) {}
+    }
+    return str.split(",").map(x => Number(x.trim())).filter(n => n >= 1 && n <= 3);
   }
 
   // Inicializar mapa Leaflet con OpenStreetMap
@@ -1024,7 +1077,6 @@
     if (!map || !mapLayerGroup) return;
     mapLayerGroup.clearLayers();
 
-    // Ubicación del usuario / apoyo actual
     const selfMarker = L.marker([appState.userLocation.lat, appState.userLocation.lng], {
       icon: L.divIcon({
         className: "",
@@ -1040,7 +1092,6 @@
     });
     mapLayerGroup.addLayer(selfMarker);
 
-    // Si el conductor confirmó "Sí voy", trazar línea de apoyo hacia ese evento
     if (appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent) {
       const targetEv = appState.events.find(e => e.number === appState.confirmedEvent);
       if (targetEv) {
@@ -1055,11 +1106,8 @@
       }
     }
 
-    // Eventos activos + vector de rumbo + apoyos confirmados
     appState.events.forEach(ev => {
       const isFocused = ev.number === appState.focusedEvent;
-
-      // Vector de desplazamiento (rumbo + velocidad)
       const vectorTip = destinationPoint(ev.lat, ev.lng, ev.bearing, isFocused ? 520 : 340);
       const vectorLine = L.polyline(
         [
@@ -1074,7 +1122,6 @@
       );
       mapLayerGroup.addLayer(vectorLine);
 
-      // Punta del vector
       const tipDot = L.circleMarker(vectorTip, {
         radius: isFocused ? 4 : 3,
         color: "#F59E0B",
@@ -1083,7 +1130,6 @@
       });
       mapLayerGroup.addLayer(tipDot);
 
-      // Marcadores de apoyos confirmados del evento
       ev.responders.forEach(unit => {
         const intercept = L.polyline(
           [
@@ -1110,7 +1156,6 @@
         mapLayerGroup.addLayer(supMarker);
       });
 
-      // Marcador SOS del evento
       const sosIcon = L.divIcon({
         className: "",
         html: `<div class="sos-marker-wrap">${isFocused ? '<div class="sos-pulse"></div>' : ''}<div class="sos-core"></div></div>`,
@@ -1165,7 +1210,6 @@
     }
   }
 
-  // Reglas de audio PTT y silencio absoluto del Emisor en Alarma
   function playRadioTone(freqStart, freqEnd, durationMs) {
     if (appState.role === "ALARM_EMITTER") return; // CERO audio saliente
     try {
@@ -1210,21 +1254,20 @@
           : "Confirma 'Sí voy' para transmitir"
       };
     }
-    // DRIVER_CONFIRMED
     if (channel === "ADMIN") {
       return { canListen: false, canTransmit: false, maxTot: 30, reason: "Canal exclusivo Administradores" };
     }
     if (channel === "VICTIMA") {
       return { canListen: true, canTransmit: false, maxTot: 30, reason: "Canal VÍCTIMA: solo monitoreo de cabina" };
     }
-    if (Number(channel) === appState.confirmedEvent) {
+    if (appState.confirmedEventsList.includes(Number(channel)) || Number(channel) === appState.confirmedEvent) {
       return { canListen: true, canTransmit: true, maxTot: 30, reason: null };
     }
     return {
       canListen: true,
       canTransmit: false,
       maxTot: 30,
-      reason: `Autorizado solo en Evento ${appState.confirmedEvent}`
+      reason: `Autorizado solo en Evento ${appState.confirmedEvent || 1}`
     };
   }
 
@@ -1247,10 +1290,13 @@
     stopPtt(true);
     appState.role = "DRIVER_CONFIRMED";
     appState.confirmedEvent = eventNumber;
+    if (!appState.confirmedEventsList.includes(eventNumber)) {
+      appState.confirmedEventsList = [eventNumber];
+    }
     appState.selectedChannel = String(eventNumber);
     appState.siVoyDropdownOpen = false;
     focusEvent(eventNumber);
-    syncNativeBridge();
+    syncNativeBridge(true);
     addLog(`EV.${eventNumber}`, "SÍ VOY", `Apoyo confirmado en Evento ${eventNumber} (TOT 30s).`, false);
     renderAll();
   }
@@ -1271,9 +1317,12 @@
     appState.eventCount = count;
     appState.events = cloneEvents(count);
     if (appState.focusedEvent > count) appState.focusedEvent = 1;
+    appState.confirmedEventsList = appState.confirmedEventsList.filter(n => n <= count);
     if (appState.confirmedEvent && appState.confirmedEvent > count) {
-      appState.confirmedEvent = null;
-      if (appState.role === "DRIVER_CONFIRMED") appState.role = "DRIVER_UNCONFIRMED";
+      appState.confirmedEvent = appState.confirmedEventsList[0] || null;
+      if (!appState.confirmedEvent && appState.role === "DRIVER_CONFIRMED") {
+        appState.role = "DRIVER_UNCONFIRMED";
+      }
     }
     if (["1", "2", "3"].includes(appState.selectedChannel) && Number(appState.selectedChannel) > count) {
       appState.selectedChannel = "1";
@@ -1290,17 +1339,20 @@
     appState.role = newRole;
     if (newRole === "DRIVER_CONFIRMED" && !appState.confirmedEvent) {
       appState.confirmedEvent = appState.focusedEvent;
+      appState.confirmedEventsList = [appState.focusedEvent];
       appState.selectedChannel = String(appState.confirmedEvent);
     }
     if (newRole === "DRIVER_UNCONFIRMED") {
       appState.confirmedEvent = null;
+      appState.confirmedEventsList = [];
     }
     if (newRole === "ALARM_EMITTER") {
       appState.confirmedEvent = null;
+      appState.confirmedEventsList = [];
       appState.selectedChannel = "VICTIMA";
     }
     appState.siVoyDropdownOpen = false;
-    syncNativeBridge();
+    syncNativeBridge(true);
     addLog(
       newRole === "ALARM_EMITTER" ? "SOS" : "ROL",
       "CAMBIO ROL",
@@ -1458,7 +1510,6 @@
     const access = computeAccess(appState.selectedChannel);
     document.getElementById("roleQuickChip").textContent = roleLabel(appState.role);
 
-    // "Sí voy" button or dropdown
     const siVoyWrap = document.getElementById("siVoyContainer");
     const siVoyBtn = document.getElementById("siVoyBtn");
     const dropdown = document.getElementById("siVoyDropdown");
@@ -1480,7 +1531,6 @@
       ).join("");
     }
 
-    // Channel Keypad (1, 2, 3..., VÍCTIMA, ADMIN)
     const keypad = document.getElementById("channelKeypad");
     const keys = [
       ...appState.events.map(e => ({ id: String(e.number), label: String(e.number), wide: false, cls: "" })),
@@ -1490,7 +1540,8 @@
     keypad.innerHTML = keys.map(k => {
       const active = appState.selectedChannel === k.id;
       const chAccess = computeAccess(k.id);
-      const isConfirmedEv = appState.role === "DRIVER_CONFIRMED" && String(appState.confirmedEvent) === k.id;
+      const isConfirmedEv = appState.role === "DRIVER_CONFIRMED" &&
+        (appState.confirmedEventsList.includes(Number(k.id)) || String(appState.confirmedEvent) === k.id);
       const classes = [
         "ch-key",
         k.wide ? "wide" : "",
@@ -1502,7 +1553,6 @@
       return `<button class="${classes}" onclick="selectChannel('${k.id}')">${k.label}</button>`;
     }).join("");
 
-    // On-Air + TOT bar
     const onAirCard = document.getElementById("onAirCard");
     const airTitle = document.getElementById("airTitle");
     const airSub = document.getElementById("airSub");
@@ -1582,11 +1632,13 @@
 
   function refreshAnthiPanel() {
     const params = {
+      source: appState.launchSource,
       uid: appState.uid,
       alias: appState.alias,
       role: appState.role,
+      eventsCount: appState.events.length,
       activeEvent: appState.focusedEvent,
-      confirmedEvents: appState.confirmedEvent ? [appState.confirmedEvent] : []
+      confirmedEvents: appState.confirmedEventsList
     };
     document.getElementById("anthiParamsBox").textContent = JSON.stringify(params, null, 2);
 
@@ -1614,41 +1666,143 @@
     }
   }
 
-  function simulateAnthiDeepLink() {
-    applyDeepLinkParams({
-      uid: "anthi_admin_01",
-      alias: "Central M34",
-      role: "ADMIN",
-      activeEvent: "2",
-      confirmedEvents: "1,2"
-    });
+  function simulateAnthiLaunch(anthiRole) {
+    const payloads = {
+      admin: {
+        uid: "anthi_admin_01",
+        alias: "Central M34",
+        role: "admin",
+        events: "1,2,3",
+        activeEvent: "2",
+        confirmedEvents: "1,2"
+      },
+      conductor_confirmado: {
+        uid: "anthi_movil_07",
+        alias: "Móvil 07",
+        role: "conductor_confirmado",
+        events: "1,2",
+        activeEvent: "1",
+        confirmedEvents: "1"
+      },
+      conductor_sin_confirmar: {
+        uid: "anthi_movil_12",
+        alias: "Móvil 12",
+        role: "conductor_sin_confirmar",
+        events: "1,2",
+        activeEvent: "1",
+        confirmedEvents: ""
+      },
+      emisor_alarma: {
+        uid: "anthi_sos_14",
+        alias: "Móvil 14 (SOS)",
+        role: "emisor_alarma",
+        events: "1",
+        activeEvent: "1",
+        confirmedEvents: ""
+      }
+    };
+    applyAnthiLaunchParams(payloads[anthiRole] || payloads.conductor_sin_confirmar, true, "sim-deeplink");
     switchTab("tactical");
   }
 
   window.onAnthiDeepLinkUpdate = function(params) {
-    applyDeepLinkParams(params);
+    applyAnthiLaunchParams(params, true, "deep-link");
   };
 
-  function applyDeepLinkParams(p, startService = true) {
-    if (!p) return;
-    if (p.uid) appState.uid = p.uid;
-    if (p.alias) appState.alias = p.alias;
-    if (p.role) appState.role = p.role;
-    if (p.confirmedEvents) {
-      const first = Number(String(p.confirmedEvents).split(",")[0]);
-      if (first >= 1 && first <= 3) appState.confirmedEvent = first;
-    }
-    if (p.activeEvent) {
-      const evNum = Number(p.activeEvent);
-      if (evNum >= 1 && evNum <= 3) {
-        if (evNum > appState.eventCount) setEventCount(evNum);
-        appState.focusedEvent = evNum;
-        appState.selectedChannel = String(evNum);
+  // Receptor unificado ANTHI M34: Query String, Hash (#), postMessage y Deep Link Android
+  function readUrlAndHashParams() {
+    const merged = {};
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.forEach((v, k) => { if (v) merged[k] = v; });
+
+    const rawHash = window.location.hash ? window.location.hash.replace(/^#/, "") : "";
+    if (rawHash) {
+      const hashQuery = rawHash.includes("?") ? rawHash.split("?")[1] : rawHash;
+      if (hashQuery.includes("=")) {
+        const hashParams = new URLSearchParams(hashQuery);
+        hashParams.forEach((v, k) => { if (v && !merged[k]) merged[k] = v; });
       }
     }
+    return merged;
+  }
+
+  function applyAnthiLaunchParams(p, startService = true, sourceLabel = "anthi") {
+    if (!p || Object.keys(p).length === 0) return;
+
+    const uid = p.uid;
+    const alias = p.alias || p.nombre || p.movil;
+    const normRole = normalizeAnthiRole(p.role);
+    const parsedEvents = parseEventsPayload(p.events || p.activeEvents);
+    const confirmedList = parseConfirmedList(p.confirmedEvents);
+    const targetEv = Number(p.activeEvent || p.focusedEvent || 0);
+
+    appState.launchSource = sourceLabel;
+    if (uid) appState.uid = String(uid);
+    if (alias) appState.alias = String(alias);
+
+    if (parsedEvents && parsedEvents.length > 0) {
+      appState.events = parsedEvents.map((ev, idx) => ({
+        ...BASE_EVENTS[idx % BASE_EVENTS.length],
+        ...ev,
+        number: Number(ev.number || idx + 1)
+      }));
+      appState.eventCount = appState.events.length;
+    } else {
+      const neededCount = Math.max(appState.eventCount, targetEv || 0, ...(confirmedList.length ? confirmedList : [0]));
+      if (neededCount > appState.events.length) {
+        const capped = Math.min(3, neededCount);
+        appState.events = cloneEvents(capped);
+        appState.eventCount = capped;
+      }
+    }
+
+    if (normRole) {
+      appState.role = normRole;
+    } else if (confirmedList.length > 0) {
+      appState.role = "DRIVER_CONFIRMED";
+    }
+
+    appState.confirmedEventsList = confirmedList;
+    if (confirmedList.length > 0) {
+      appState.confirmedEvent = confirmedList[0];
+    } else if (appState.role === "DRIVER_CONFIRMED") {
+      appState.confirmedEvent = targetEv >= 1 ? targetEv : 1;
+      appState.confirmedEventsList = [appState.confirmedEvent];
+    } else {
+      appState.confirmedEvent = null;
+    }
+
+    if (targetEv >= 1 && appState.events.some(e => e.number === targetEv)) {
+      appState.focusedEvent = targetEv;
+    } else if (appState.confirmedEvent) {
+      appState.focusedEvent = appState.confirmedEvent;
+    }
+
+    if (appState.role === "ALARM_EMITTER") {
+      appState.selectedChannel = "VICTIMA";
+    } else if (appState.role === "ADMIN" && !targetEv) {
+      appState.selectedChannel = "ADMIN";
+    } else {
+      appState.selectedChannel = String(appState.focusedEvent);
+    }
+
+    if (map) {
+      const evObj = appState.events.find(e => e.number === appState.focusedEvent);
+      if (evObj) map.setView([evObj.lat, evObj.lng], 15);
+    }
+
     syncNativeBridge(startService);
+    addLog("ANTHI", sourceLabel.toUpperCase(), `Enlace cargado · Rol: ${appState.role} · Canal: ${appState.selectedChannel}`, appState.role === "ALARM_EMITTER");
     renderAll();
   }
+
+  window.addEventListener("message", event => {
+    const data = event && event.data;
+    if (!data || typeof data !== "object") return;
+    if (data.type === "ANTHI_PULSO_INIT" || data.type === "ANTHI_M34_OPEN") {
+      applyAnthiLaunchParams(data.payload || data, true, "postMessage");
+    }
+  });
 
   function addLog(ch, actor, msg, alert) {
     const now = new Date();
@@ -1679,26 +1833,32 @@
 
   (function boot() {
     appState.events = cloneEvents(appState.eventCount);
-    const qs = new URLSearchParams(window.location.search);
-    const launch = {
-      uid: qs.get("uid") || "",
-      alias: qs.get("alias") || "",
-      role: qs.get("role") || "",
-      activeEvent: qs.get("activeEvent") || "",
-      confirmedEvents: qs.get("confirmedEvents") || ""
-    };
+    const urlParams = readUrlAndHashParams();
+    let bridgeParams = {};
     if (hasBridge()) {
       try {
-        const nativeLaunch = JSON.parse(window.AndroidPulsoBridge.getAnthiLaunchParams());
-        Object.keys(nativeLaunch).forEach(k => {
-          if (!launch[k]) launch[k] = nativeLaunch[k];
-        });
+        bridgeParams = JSON.parse(window.AndroidPulsoBridge.getAnthiLaunchParams()) || {};
       } catch (_) {}
     }
+
+    const combined = { ...bridgeParams, ...urlParams };
+    const hasIncomingParams = Boolean(
+      combined.uid ||
+      combined.role ||
+      combined.activeEvent ||
+      combined.focusedEvent ||
+      combined.confirmedEvents ||
+      combined.events ||
+      combined.activeEvents
+    );
+
     initLeafletMap();
-    applyDeepLinkParams(launch, false);
-    addLog("ANTHI", "SISTEMA", "Mapa Leaflet/OSM centrado en Café Madrid · Autopista Norte.", false);
-    renderAll();
+    if (hasIncomingParams) {
+      applyAnthiLaunchParams(combined, false, urlParams.role ? "url/hash" : "deep-link");
+    } else {
+      addLog("ANTHI", "SISTEMA", "Inicio directo sin parámetros · Simulador listo.", false);
+      renderAll();
+    }
     startTelemetryLoop();
   })();
 </script>
