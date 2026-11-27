@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070B12" />
+  <meta name="description" content="Pulso M34 · Ecosistema ANTHI. Radio táctico push-to-talk en tiempo real, mapa permanente, canales por evento y silencio total en alarma." />
+  <title>PULSO M34 · ANTHI — Radio Táctico y Descarga APK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base: #070B12;
+      --bg-surface: #0D1522;
+      --bg-elevated: #132033;
+      --border-subtle: rgba(148, 163, 184, 0.16);
+      --border-strong: rgba(0, 229, 168, 0.35);
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --emerald: #00E5A8;
+      --emerald-dim: rgba(0, 229, 168, 0.12);
+      --cyan: #06B6D4;
+      --cyan-dim: rgba(6, 182, 212, 0.12);
+      --alert: #FF3B30;
+      --alert-dim: rgba(255, 59, 48, 0.14);
+      --amber: #F59E0B;
+      --amber-dim: rgba(245, 158, 11, 0.14);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(0, 229, 168, 0.10), transparent 38%),
+        radial-gradient(circle at 88% 14%, rgba(6, 182, 212, 0.10), transparent 36%),
+        radial-gradient(circle at 50% 95%, rgba(255, 59, 48, 0.06), transparent 42%),
+        var(--bg-base);
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Topbar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(7, 11, 18, 0.82);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 68px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0D1522 0%, #132033 100%);
+      border: 1px solid rgba(0, 229, 168, 0.4);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 20px rgba(0, 229, 168, 0.16);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--cyan);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 0 0 rgba(0, 229, 168, 0.6);
+      animation: pulseRing 2s infinite;
+    }
+
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(0, 229, 168, 0.65); }
+      70% { box-shadow: 0 0 0 8px rgba(0, 229, 168, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 229, 168, 0); }
+    }
+
+    /* Hero */
+    .hero {
+      padding: 44px 0 36px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--emerald-dim);
+      border: 1px solid rgba(0, 229, 168, 0.28);
+      color: var(--emerald);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4.2vw, 3.15rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+
+    h1 .accent {
+      background: linear-gradient(90deg, var(--emerald), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 58ch;
+      margin-bottom: 24px;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      padding: 13px 22px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.14s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.985);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--emerald) 0%, #00C892 100%);
+      color: #03130E;
+      box-shadow: 0 10px 28px rgba(0, 229, 168, 0.24);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 14px 32px rgba(0, 229, 168, 0.34);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border-color: rgba(6, 182, 212, 0.42);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-elevated);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .apk-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .apk-chip {
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .install-note {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--cyan);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .install-note strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13.5px;
+    }
+
+    /* Interactive Phone Preview Card */
+    .preview-shell {
+      background: linear-gradient(180deg, #0D1522 0%, #09101B 100%);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 26px;
+      padding: 14px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(6, 182, 212, 0.08);
+    }
+
+    .preview-screen {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .preview-map {
+      position: relative;
+      height: 190px;
+      background:
+        linear-gradient(rgba(6, 182, 212, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6, 182, 212, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 60% 42%, rgba(255, 59, 48, 0.18), transparent 45%),
+        #0A121E;
+      background-size: 26px 26px, 26px 26px, 100% 100%, 100% 100%;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .map-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .hud-box {
+      background: rgba(7, 11, 18, 0.88);
+      border: 1px solid rgba(255, 59, 48, 0.35);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .hud-box .hud-ev {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .hud-box .hud-loc {
+      color: var(--text-secondary);
+      font-size: 10.5px;
+    }
+
+    .hud-badge {
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: rgba(0, 229, 168, 0.14);
+      border: 1px solid rgba(0, 229, 168, 0.35);
+      color: var(--emerald);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .map-markers {
+      position: relative;
+      flex: 1;
+    }
+
+    .sos-node {
+      position: absolute;
+      left: 56%;
+      top: 44%;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--alert);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 8px rgba(255, 59, 48, 0.25);
+      transform: translate(-50%, -50%);
+    }
+
+    .support-node {
+      position: absolute;
+      left: 30%;
+      top: 66%;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--emerald);
+      border: 2px solid #070B12;
+      transform: translate(-50%, -50%);
+    }
+
+    .intercept-line {
+      position: absolute;
+      left: 30%;
+      top: 66%;
+      width: 92px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--emerald), var(--cyan));
+      transform-origin: left center;
+      transform: rotate(-27deg);
+      opacity: 0.85;
+    }
+
+    .silent-strip {
+      display: none;
+      background: rgba(255, 59, 48, 0.92);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-align: center;
+      padding: 6px 8px;
+      border-radius: 8px;
+      letter-spacing: 0.03em;
+    }
+
+    .silent-strip.active {
+      display: block;
+    }
+
+    .preview-dock {
+      background: var(--bg-surface);
+      padding: 12px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .role-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 8px;
+      background: var(--cyan-dim);
+      color: var(--cyan);
+      border: 1px solid rgba(6, 182, 212, 0.28);
+    }
+
+    .sivoy-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 11px;
+      border-radius: 8px;
+      background: var(--emerald-dim);
+      color: var(--emerald);
+      border: 1px solid rgba(0, 229, 168, 0.4);
+      cursor: pointer;
+    }
+
+    .channel-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .ch-key {
+      min-height: 38px;
+      border-radius: 9px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .ch-key.active {
+      background: var(--emerald-dim);
+      border-color: var(--emerald);
+      color: var(--emerald);
+    }
+
+    .ch-key.victim.active {
+      background: var(--alert-dim);
+      border-color: var(--alert);
+      color: #FF8A80;
+    }
+
+    .ch-key.admin.active {
+      background: var(--cyan-dim);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .preview-status {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+    }
+
+    .tot-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--amber-dim);
+      color: var(--amber);
+      white-space: nowrap;
+    }
+
+    .ptt-preview-btn {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 11px;
+      border: 1px solid rgba(0, 229, 168, 0.45);
+      background: linear-gradient(180deg, rgba(0, 229, 168, 0.22), rgba(0, 229, 168, 0.10));
+      color: var(--emerald);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+
+    .ptt-preview-btn.locked {
+      border-color: rgba(255, 59, 48, 0.4);
+      background: rgba(255, 59, 48, 0.12);
+      color: #FF8A80;
+    }
+
+    /* Section Headings */
+    .section {
+      padding: 28px 0 40px;
+    }
+
+    .section-head {
+      margin-bottom: 22px;
+    }
+
+    .section-kicker {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(0, 229, 168, 0.32);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .icon-emerald { background: var(--emerald-dim); color: var(--emerald); border: 1px solid rgba(0, 229, 168, 0.3); }
+    .icon-cyan { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.3); }
+    .icon-alert { background: var(--alert-dim); color: #FF6B63; border: 1px solid rgba(255, 59, 48, 0.35); }
+    .icon-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.35); }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .card p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Rules Summary Banner */
+    .rules-box {
+      background: linear-gradient(135deg, rgba(13, 21, 34, 0.96), rgba(19, 32, 51, 0.88));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .rule-stat {
+      background: rgba(7, 11, 18, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .rule-val {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .rule-label {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 24px 0 36px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--bg-elevated);
+      border: 1px solid var(--cyan);
+      color: var(--text-primary);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 60;
+      max-width: calc(100vw - 32px);
+      text-align: center;
+    }
+
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+      .features-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .rules-box {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .hero {
+        padding-top: 28px;
+      }
+      .cta-row .btn {
+        width: 100%;
+      }
+      .features-grid,
+      .rules-box {
+        grid-template-columns: 1fr;
+      }
+      .status-pill {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2.5L4.5 5.6V11.6C4.5 16.5 7.7 20.9 12 22.3C16.3 20.9 19.5 16.5 19.5 11.6V5.6L12 2.5Z" stroke="#00E5A8" stroke-width="1.8" />
+            <path d="M7.3 12.2H9.6L11 9.1L13.1 15L14.6 12.2H16.8" stroke="#06B6D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">PULSO M34 · ANTHI</div>
+          <div class="brand-sub">Módulo Táctico Push-To-Talk</div>
+        </div>
+      </div>
+
+      <div class="status-pill">
+        <span class="pulse-dot"></span>
+        <span>Ecosistema ANTHI · Android APK</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">Comunicación Táctica en Tiempo Real</div>
+          <h1>Coordinación inmediata con <span class="accent">mapa permanente y radio PTT</span></h1>
+          <p class="hero-desc">
+            <strong>PULSO M34 · ANTHI</strong> conecta conductores de apoyo, administradores y unidades en emergencia dentro de una sola interfaz móvil oscura: mapa geográfico siempre visible arriba, teclado de canales abajo y silencio absoluto en el celular que emite la alarma.
+          </p>
+
+          <div class="cta-row">
+            <a id="btnDescargarApk" class="btn btn-primary" href="./pulso-m34.apk" download="Pulso-M34-ANTHI.apk">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3V15M12 15L7 10M12 15L17 10M4 18.5H20" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Descargar APK (Pulso M34)
+            </a>
+
+            <a id="btnAbrirDemo" class="btn btn-secondary" href="./pulso_m34.html">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <polygon points="6,4 20,12 6,20" fill="currentColor" />
+              </svg>
+              Probar Interfaz / Demo
+            </a>
+          </div>
+
+          <div class="apk-meta-row">
+            <span class="apk-chip" id="chipVersion">APK Android 8.0+ (SDK 36 ready)</span>
+            <span class="apk-chip">Deep Link: pulso34://abrir</span>
+            <span class="apk-chip">Servicio 24/7 en primer plano</span>
+          </div>
+
+          <div class="install-note">
+            <strong>¿Cómo instalar el APK en Android?</strong>
+            Al descargar el archivo, tócalo desde tus notificaciones o la carpeta <em>Descargas</em>. Si Android solicita permiso por <strong>orígenes desconocidos</strong>, pulsa <em>Configuración</em> y activa <strong>"Permitir desde esta fuente"</strong> (navegador o gestor de archivos) para completar la instalación.
+          </div>
+        </div>
+
+        <!-- Vista previa interactiva integrada -->
+        <aside class="preview-shell" aria-label="Vista previa interactiva de Pulso M34">
+          <div class="preview-screen">
+            <div class="preview-map">
+              <div class="map-hud">
+                <div class="hud-box">
+                  <div class="hud-ev" id="prevHudTitle">EV.1 · Móvil 14 (ANTHI-3401)</div>
+                  <div class="hud-loc">Sector Café Madrid · Hacia el Norte · 54 km/h</div>
+                </div>
+                <div class="hud-badge">MAPA ACTIVO</div>
+              </div>
+
+              <div class="map-markers">
+                <div class="intercept-line"></div>
+                <div class="support-node" title="Unidad de apoyo confirmada"></div>
+                <div class="sos-node" title="Unidad en alarma"></div>
+              </div>
+
+              <div id="prevSilentStrip" class="silent-strip">
+                EMISOR EN ALARMA · 0% AUDIO ENTRANTE · CAPTURA MIC/CÁM/GPS
+              </div>
+            </div>
+
+            <div class="preview-dock">
+              <div class="dock-header">
+                <span class="role-tag" id="prevRoleTag">Conductor · Sí voy (Ev. 1)</span>
+                <button type="button" class="sivoy-pill" id="prevSiVoyBtn" onclick="togglePreviewSiVoy()">
+                  Sí voy ✓
+                </button>
+              </div>
+
+              <div class="channel-bar">
+                <button type="button" class="ch-key active" data-ch="1" onclick="selectPreviewChannel('1')">1</button>
+                <button type="button" class="ch-key" data-ch="2" onclick="selectPreviewChannel('2')">2</button>
+                <button type="button" class="ch-key" data-ch="3" onclick="selectPreviewChannel('3')">3</button>
+                <button type="button" class="ch-key victim" data-ch="VICTIMA" onclick="selectPreviewChannel('VICTIMA')">VÍCTIMA</button>
+                <button type="button" class="ch-key admin" data-ch="ADMIN" onclick="selectPreviewChannel('ADMIN')">ADMIN</button>
+              </div>
+
+              <div class="preview-status">
+                <span id="prevChannelDesc">Canal Evento 1 · TX autorizado</span>
+                <span class="tot-badge" id="prevTotBadge">TOT 00:30</span>
+              </div>
+
+              <button type="button" class="ptt-preview-btn" id="prevPttBtn" onclick="simulatePreviewPtt()">
+                OPRIME PARA HABLAR (PTT)
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="funciones">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-kicker">Arquitectura Operativa</div>
+          <h2 class="section-title">Funciones clave de Pulso M34</h2>
+        </div>
+
+        <div class="features-grid">
+          <article class="card">
+            <div class="card-icon icon-emerald">CH</div>
+            <h3>Canales 1, 2, 3, VÍCTIMA y ADMIN</h3>
+            <p>
+              Cada número corresponde a un evento activo en ANTHI M34. El canal <strong>VÍCTIMA</strong> separa la captura ambiental, cámara y telemetría de quien activó la alarma; <strong>ADMIN</strong> coordina directrices sin saturar los eventos.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon icon-cyan">SV</div>
+            <h3>Confirmación inteligente "Sí voy"</h3>
+            <p>
+              Con 1 evento activo, el botón <strong>"Sí voy"</strong> autoriza al instante. Con 2 o más eventos simultáneos, se despliega una lista para elegir exactamente hacia cuál evento acude el conductor y desbloquear solo ese canal.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon icon-amber">TOT</div>
+            <h3>Límites de transmisión (30s / 180s)</h3>
+            <p>
+              Temporizador automático con corte y tonos sintéticos: máximo <strong>30 segundos</strong> por turno para conductores en canales de evento y hasta <strong>3 minutos (180 s)</strong> para administradores.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon icon-alert">0%</div>
+            <h3>Silencio total en Emisor en Alarma</h3>
+            <p>
+              El teléfono que dispara la alerta mantiene <strong>cero reproducción de audio entrante</strong> en altavoz y Web Audio, garantizando discreción operativa mientras transmite micrófono, cámara y GPS continuo.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon icon-emerald">GPS</div>
+            <h3>Mapa táctico permanente</h3>
+            <p>
+              Mapa OpenStreetMap siempre visible en la mitad superior mientras se opera el mini-radio con una sola mano abajo, mostrando rumbo, velocidad, apoyos confirmados y centrado rápido.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon icon-cyan">M34</div>
+            <h3>Enlace directo desde ANTHI</h3>
+            <p>
+              El botón/escudo M34 de ANTHI abre Pulso M34 vía URL o deep link <code>pulso34://abrir</code> enviando identidad, rol, eventos activos y confirmaciones previas automáticamente.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="rules-box">
+          <div class="rule-stat">
+            <div class="rule-val" style="color: var(--emerald);">30 seg</div>
+            <div class="rule-label">Límite TOT para conductores confirmados en canal de evento.</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-val" style="color: var(--cyan);">180 seg</div>
+            <div class="rule-label">Límite TOT (3 min) para administradores con acceso global.</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-val" style="color: var(--alert);">0% audio</div>
+            <div class="rule-label">Salida de altavoz bloqueada en el dispositivo Emisor en Alarma.</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-val" style="color: var(--amber);">1 toque</div>
+            <div class="rule-label">Botón "Sí voy" directo o desplegable según eventos activos.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <span>PULSO M34 · Módulo Push-To-Talk del ecosistema ANTHI</span>
+      <span>Publicado para GitHub Pages · Modo oscuro táctico</span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    /* =========================================================================
+       CONFIGURACIÓN RÁPIDA PARA GITHUB PAGES
+       Reemplaza estas dos variables antes de subir si alojas el APK o la demo
+       en otra URL (por ejemplo, GitHub Releases).
+       ========================================================================= */
+    const URL_DESCARGA_APK = "./pulso-m34.apk";
+    const URL_DEMO_INTERFAZ = "./pulso_m34.html";
+    const VERSION_APK = "v1.0 · APK Android";
+
+    const btnDescargar = document.getElementById("btnDescargarApk");
+    const btnDemo = document.getElementById("btnAbrirDemo");
+    const chipVersion = document.getElementById("chipVersion");
+    const toastEl = document.getElementById("toast");
+
+    btnDescargar.href = URL_DESCARGA_APK;
+    btnDemo.href = URL_DEMO_INTERFAZ;
+    chipVersion.textContent = VERSION_APK;
+
+    let toastTimer = null;
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("visible"), 3600);
+    }
+
+    btnDescargar.addEventListener("click", () => {
+      showToast("Iniciando descarga de Pulso M34 APK. Revisa tus notificaciones en Android.");
+    });
+
+    btnDemo.addEventListener("click", (e) => {
+      if (!URL_DEMO_INTERFAZ || URL_DEMO_INTERFAZ === "#") {
+        e.preventDefault();
+        document.querySelector(".preview-shell").scrollIntoView({ behavior: "smooth", block: "center" });
+        showToast("Usa la vista previa interactiva de Pulso M34 en esta página.");
+      }
+    });
+
+    // Lógica de la vista previa interactiva en la tarjeta de presentación
+    let previewSiVoy = true;
+    let previewChannel = "1";
+
+    function renderPreview() {
+      const roleTag = document.getElementById("prevRoleTag");
+      const siVoyBtn = document.getElementById("prevSiVoyBtn");
+      const desc = document.getElementById("prevChannelDesc");
+      const totBadge = document.getElementById("prevTotBadge");
+      const pttBtn = document.getElementById("prevPttBtn");
+      const silentStrip = document.getElementById("prevSilentStrip");
+
+      document.querySelectorAll(".ch-key").forEach((el) => {
+        el.classList.toggle("active", el.dataset.ch === previewChannel);
+      });
+
+      silentStrip.classList.toggle("active", previewChannel === "VICTIMA");
+      siVoyBtn.textContent = previewSiVoy ? "Sí voy ✓" : "Sí voy ▾";
+      roleTag.textContent = previewSiVoy ? "Conductor · Sí voy (Ev. 1)" : "Conductor · Sin confirmar";
+
+      if (previewChannel === "ADMIN") {
+        desc.textContent = "Canal ADMIN · Acceso coordinadores";
+        totBadge.textContent = "TOT 03:00";
+        pttBtn.classList.remove("locked");
+        pttBtn.textContent = "DEMO ADMIN · LÍMITE 180 SEG";
+      } else if (previewChannel === "VICTIMA") {
+        desc.textContent = "Canal VÍCTIMA · Monitoreo / Silencio en emisor";
+        totBadge.textContent = "0% ALTAVOZ";
+        pttBtn.classList.add("locked");
+        pttBtn.textContent = "SOLO CAPTURA EN EMISOR EN ALARMA";
+      } else if (!previewSiVoy || previewChannel !== "1") {
+        desc.textContent = `Evento ${previewChannel} · Confirma "Sí voy" para TX`;
+        totBadge.textContent = "TOT 00:30";
+        pttBtn.classList.add("locked");
+        pttBtn.textContent = 'CONFIRMA "SÍ VOY" PARA TRANSMITIR';
+      } else {
+        desc.textContent = "Canal Evento 1 · TX autorizado";
+        totBadge.textContent = "TOT 00:30";
+        pttBtn.classList.remove("locked");
+        pttBtn.textContent = "OPRIME PARA HABLAR (PTT)";
+      }
+    }
+
+    function selectPreviewChannel(ch) {
+      previewChannel = ch;
+      renderPreview();
+    }
+
+    function togglePreviewSiVoy() {
+      previewSiVoy = !previewSiVoy;
+      if (previewSiVoy) previewChannel = "1";
+      renderPreview();
+    }
+
+    function simulatePreviewPtt() {
+      if (previewChannel === "VICTIMA") {
+        showToast("En Emisor en Alarma el altavoz permanece en 0% mientras transmite micro, cámara y GPS.");
+        return;
+      }
+      if (previewChannel !== "ADMIN" && (!previewSiVoy || previewChannel !== "1")) {
+        showToast('Confirma "Sí voy" en el evento correspondiente para habilitar la transmisión.');
+        return;
+      }
+      showToast(previewChannel === "ADMIN" ? "PTT Admin simulado (límite 180s)." : "PTT Conductor simulado en Evento 1 (límite 30s).");
+    }
+
+    renderPreview();
+  </script>
+</body>
+</html>
