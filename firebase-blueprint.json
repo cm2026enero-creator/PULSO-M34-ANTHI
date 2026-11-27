@@ -1,0 +1,249 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil operativo del usuario vinculado desde el ecosistema ANTHI.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID de Firebase Authentication del usuario propietario."
+        },
+        "anthiUid": {
+          "type": "string",
+          "description": "Identificador opcional enviado por la app principal ANTHI."
+        },
+        "alias": {
+          "type": "string",
+          "description": "Nombre o indicativo móvil visible en el mapa y radio."
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo verificado de la sesión Google/ANTHI."
+        },
+        "focusedEvent": {
+          "type": "integer",
+          "description": "Número del evento enfocado actualmente."
+        },
+        "confirmedEvent": {
+          "type": "integer",
+          "description": "Número del evento confirmado con Sí voy (0 si no tiene)."
+        },
+        "confirmedEventIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Lista de IDs de eventos donde el conductor confirmó Sí voy."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de creación establecida con FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de última actualización establecida con FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "alias", "email", "focusedEvent", "confirmedEvent", "createdAt", "updatedAt"]
+    },
+    "AdminGrant": {
+      "title": "AdminGrant",
+      "description": "Registro de rol Administrador habilitado mediante código válido en Firebase.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID del usuario administrador."
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo de la cuenta Google/ANTHI habilitada."
+        },
+        "alias": {
+          "type": "string",
+          "description": "Indicativo operativo del administrador."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["ADMIN"],
+          "description": "Rol operativo asignado."
+        },
+        "inviteHash": {
+          "type": "string",
+          "description": "Hash SHA-256 del código de invitación utilizado."
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de habilitación establecida con FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "email", "alias", "role", "inviteHash", "grantedAt"]
+    },
+    "AdminInvite": {
+      "title": "AdminInvite",
+      "description": "Código de autorización (almacenado por hash SHA-256) administrado exclusivamente por el Superadministrador.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Etiqueta descriptiva del código de permiso."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indica si el código sigue vigente."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "UID del Superadministrador creador."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de creación establecida con FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["label", "active", "createdBy", "createdAt"]
+    },
+    "TacticalEvent": {
+      "title": "TacticalEvent",
+      "description": "Evento activo o cerrado en el mapa y consola PTT de Pulso M34.",
+      "type": "object",
+      "properties": {
+        "eventNumber": {
+          "type": "integer",
+          "description": "Número visible del evento (1, 2, 3...)."
+        },
+        "code": {
+          "type": "string",
+          "description": "Código de incidente ANTHI (por ejemplo ANTHI-3401)."
+        },
+        "callsign": {
+          "type": "string",
+          "description": "Unidad o móvil asociado al evento."
+        },
+        "sector": {
+          "type": "string",
+          "description": "Descripción de zona o corredor vial."
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitud geográfica."
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitud geográfica."
+        },
+        "bearing": {
+          "type": "integer",
+          "description": "Rumbo en grados (0-360)."
+        },
+        "speedKmh": {
+          "type": "integer",
+          "description": "Velocidad en km/h."
+        },
+        "audioDb": {
+          "type": "integer",
+          "description": "Nivel de audio de cabina en dB."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indica si el evento permanece activo (true) en segundo plano hasta cierre explícito."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "closed"],
+          "description": "Estado del evento."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "UID del usuario creador."
+        },
+        "closedBy": {
+          "type": "string",
+          "description": "UID de quien cerró el evento."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de creación con FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de actualización con FieldValue.serverTimestamp()."
+        },
+        "closedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de cierre con FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["eventNumber", "code", "callsign", "sector", "lat", "lng", "bearing", "speedKmh", "audioDb", "active", "status", "createdBy", "createdAt", "updatedAt"]
+    },
+    "EventResponder": {
+      "title": "EventResponder",
+      "description": "Unidad de apoyo que confirmó Sí voy en un evento.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID de la unidad de apoyo."
+        },
+        "eventId": {
+          "type": "string",
+          "description": "ID del evento padre."
+        },
+        "callsign": {
+          "type": "string",
+          "description": "Indicativo visible de la unidad."
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitud de la unidad."
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitud de la unidad."
+        },
+        "etaMin": {
+          "type": "integer",
+          "description": "Tiempo estimado de llegada en minutos."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Indica si sigue en apoyo activo."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de actualización con FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "eventId", "callsign", "lat", "lng", "etaMin", "active", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Perfiles operativos vinculados a cada sesión ANTHI."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminGrant" },
+      "description": "Usuarios con rol Administrador habilitado."
+    },
+    "/admin_invites/{inviteHash}": {
+      "schema": { "$ref": "#/entities/AdminInvite" },
+      "description": "Códigos de permiso administrativo protegidos por hash SHA-256."
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/TacticalEvent" },
+      "description": "Eventos tácticos en tiempo real (cierre por Admin/Dueño, eliminación exclusiva por Superadmin)."
+    },
+    "/events/{eventId}/responders/{responderId}": {
+      "schema": { "$ref": "#/entities/EventResponder" },
+      "description": "Confirmaciones Sí voy por evento."
+    }
+  }
+}

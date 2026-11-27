@@ -86,6 +86,15 @@ dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.webkit)
   implementation(libs.androidx.activity.ktx)
+  implementation(libs.androidx.lifecycle.runtime.ktx)
+  implementation(libs.kotlinx.coroutines.android)
+
+  implementation(platform(libs.firebase.bom))
+  implementation(libs.firebase.firestore)
+  implementation(libs.firebase.auth)
+  implementation(libs.androidx.credentials)
+  implementation(libs.androidx.credentials.play.services)
+  implementation(libs.googleid)
 
   testImplementation(libs.junit)
   testImplementation(libs.androidx.core)

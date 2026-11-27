@@ -4,4 +4,8 @@
     <string name="loading_pulso_subtitle">Sincronizando enlace táctico...</string>
     <string name="service_notification_title">Pulso M34 · Enlace Táctico Activo</string>
     <string name="service_notification_channel_name">Pulso M34 Radio Táctica</string>
+    <string name="auth_title">PULSO M34 · ECOSISTEMA ANTHI</string>
+    <string name="auth_subtitle">Inicia sesión con tu cuenta Google vinculada a ANTHI para sincronizar eventos en tiempo real, permisos y control táctico.</string>
+    <string name="auth_sign_in_google">Continuar con Google</string>
+    <string name="auth_signing_in">Verificando sesión ANTHI...</string>
 </resources>

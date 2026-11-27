@@ -1,0 +1,249 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Bloqueo global por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Superadministrador / Dueño verificado por correo autenticado (sin lecturas DB)
+    function isOwner() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'cm2026enero@gmail.com';
+    }
+
+    // Administrador operativo habilitado en /admins/{uid} (o Superadmin)
+    function isAdmin() {
+      return isSignedIn() && (
+        isOwner() ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'ADMIN')
+      );
+    }
+
+    function isValidInviteHash(hash) {
+      return isValidId(hash) &&
+        exists(/databases/$(database)/documents/admin_invites/$(hash)) &&
+        get(/databases/$(database)/documents/admin_invites/$(hash)).data.active == true;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        (!('anthiUid' in data) || (data.anthiUid is string && data.anthiUid.size() <= 128)) &&
+        data.alias is string && data.alias.size() >= 1 && data.alias.size() <= 50 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.focusedEvent is int && data.focusedEvent >= 1 && data.focusedEvent <= 999 &&
+        data.confirmedEvent is int && data.confirmedEvent >= 0 && data.confirmedEvent <= 999 &&
+        (!('confirmedEventIds' in data) || (data.confirmedEventIds is list && data.confirmedEventIds.size() <= 20)) &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidAdminGrant(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.alias is string && data.alias.size() >= 1 && data.alias.size() <= 50 &&
+        data.role == 'ADMIN' &&
+        data.inviteHash is string && data.inviteHash.size() >= 6 && data.inviteHash.size() <= 128 &&
+        data.grantedAt is timestamp && data.grantedAt <= request.time;
+    }
+
+    function isValidAdminInvite(data) {
+      return data.label is string && data.label.size() >= 1 && data.label.size() <= 60 &&
+        data.active is bool &&
+        data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+        data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidEvent(data) {
+      return data.eventNumber is int && data.eventNumber >= 1 && data.eventNumber <= 999 &&
+        data.code is string && data.code.size() >= 2 && data.code.size() <= 32 &&
+        data.callsign is string && data.callsign.size() >= 1 && data.callsign.size() <= 50 &&
+        data.sector is string && data.sector.size() >= 2 && data.sector.size() <= 120 &&
+        data.lat is number && data.lat >= -90.0 && data.lat <= 90.0 &&
+        data.lng is number && data.lng >= -180.0 && data.lng <= 180.0 &&
+        data.bearing is int && data.bearing >= 0 && data.bearing <= 360 &&
+        data.speedKmh is int && data.speedKmh >= 0 && data.speedKmh <= 300 &&
+        data.audioDb is int && data.audioDb >= 0 && data.audioDb <= 140 &&
+        data.active is bool &&
+        (data.status == 'active' || data.status == 'closed') &&
+        ((data.active == true && data.status == 'active') || (data.active == false && data.status == 'closed')) &&
+        data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+        (!('closedBy' in data) || (data.closedBy is string && data.closedBy.size() >= 1 && data.closedBy.size() <= 128)) &&
+        data.createdAt is timestamp && data.createdAt <= request.time &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time &&
+        (!('closedAt' in data) || (data.closedAt is timestamp && data.closedAt <= request.time));
+    }
+
+    function isValidResponder(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.eventId is string && data.eventId.size() >= 1 && data.eventId.size() <= 128 &&
+        data.callsign is string && data.callsign.size() >= 1 && data.callsign.size() <= 50 &&
+        data.lat is number && data.lat >= -90.0 && data.lat <= 90.0 &&
+        data.lng is number && data.lng >= -180.0 && data.lng <= 180.0 &&
+        data.etaMin is int && data.etaMin >= 0 && data.etaMin <= 240 &&
+        data.active is bool &&
+        data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 1. Perfiles operativos del usuario (sin campos de rol manipulables por el cliente)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isOwner());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isOwner());
+
+      allow create: if isSignedIn() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        incoming().userId == request.auth.uid &&
+        incoming().keys().hasAll(['userId', 'alias', 'email', 'focusedEvent', 'confirmedEvent', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['userId', 'anthiUid', 'alias', 'email', 'focusedEvent', 'confirmedEvent', 'confirmedEventIds', 'createdAt', 'updatedAt']) &&
+        isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['anthiUid', 'alias', 'focusedEvent', 'confirmedEvent', 'confirmedEventIds', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isOwner());
+    }
+
+    // 2. Administradores habilitados (solo Superadmin puede listar/modificar/revocar; alta vía código válido o Superadmin)
+    match /admins/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isOwner());
+      allow list: if isSignedIn() && isOwner();
+
+      allow create: if isSignedIn() &&
+        isValidId(userId) &&
+        incoming().keys().hasAll(['userId', 'email', 'alias', 'role', 'inviteHash', 'grantedAt']) &&
+        incoming().keys().hasOnly(['userId', 'email', 'alias', 'role', 'inviteHash', 'grantedAt']) &&
+        isValidAdminGrant(incoming()) &&
+        (
+          isOwner() ||
+          (request.auth.uid == userId && incoming().userId == request.auth.uid && isValidInviteHash(incoming().inviteHash))
+        );
+
+      allow update, delete: if isSignedIn() && isValidId(userId) && isOwner();
+    }
+
+    // 3. Códigos de acceso administrativo (gestión exclusiva del Superadmin; lectura puntual por hash para canje)
+    match /admin_invites/{inviteHash} {
+      allow get: if isSignedIn() && isValidId(inviteHash);
+      allow list: if isSignedIn() && isOwner();
+
+      allow create: if isSignedIn() &&
+        isValidId(inviteHash) &&
+        isOwner() &&
+        incoming().keys().hasAll(['label', 'active', 'createdBy', 'createdAt']) &&
+        incoming().keys().hasOnly(['label', 'active', 'createdBy', 'createdAt']) &&
+        incoming().createdBy == request.auth.uid &&
+        isValidAdminInvite(incoming());
+
+      allow update: if isSignedIn() &&
+        isValidId(inviteHash) &&
+        isOwner() &&
+        isValidAdminInvite(incoming()) &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['label', 'active']);
+
+      allow delete: if isSignedIn() && isValidId(inviteHash) && isOwner();
+    }
+
+    // 4. Eventos tácticos (Cualquier usuario autenticado puede activar SOS M34; Admin/Dueño cierran; SOLO Superadmin / Dueño puede eliminar)
+    match /events/{eventId} {
+      allow get: if isSignedIn() && isValidId(eventId) && (isOwner() || existing().active == true);
+      allow list: if isSignedIn() && (isOwner() || resource.data.active == true);
+
+      allow create: if isSignedIn() &&
+        isValidId(eventId) &&
+        incoming().keys().hasAll(['eventNumber', 'code', 'callsign', 'sector', 'lat', 'lng', 'bearing', 'speedKmh', 'audioDb', 'active', 'status', 'createdBy', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['eventNumber', 'code', 'callsign', 'sector', 'lat', 'lng', 'bearing', 'speedKmh', 'audioDb', 'active', 'status', 'createdBy', 'closedBy', 'createdAt', 'updatedAt', 'closedAt']) &&
+        isValidEvent(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().active == true &&
+        incoming().status == 'active';
+
+      allow update: if isSignedIn() &&
+        isValidId(eventId) &&
+        isValidEvent(incoming()) &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        (
+          (
+            isOwner() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'sector', 'lat', 'lng', 'bearing', 'speedKmh', 'audioDb',
+              'active', 'status', 'closedBy', 'closedAt', 'updatedAt'
+            ])
+          ) ||
+          (
+            isAdmin() &&
+            existing().status == 'active' &&
+            incoming().active == false &&
+            incoming().status == 'closed' &&
+            incoming().closedBy == request.auth.uid &&
+            ('closedAt' in incoming()) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'active', 'status', 'closedBy', 'closedAt', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isSignedIn() && isValidId(eventId) && isOwner();
+
+      // Unidades de apoyo confirmadas ("Sí voy") por evento
+      match /responders/{responderId} {
+        allow get: if isSignedIn() && isValidId(eventId) && isValidId(responderId);
+        allow list: if isSignedIn() && (isOwner() || resource.data.active == true);
+
+        allow create: if isSignedIn() &&
+          isValidId(eventId) &&
+          isValidId(responderId) &&
+          request.auth.uid == responderId &&
+          incoming().keys().hasAll(['userId', 'eventId', 'callsign', 'lat', 'lng', 'etaMin', 'active', 'updatedAt']) &&
+          incoming().keys().hasOnly(['userId', 'eventId', 'callsign', 'lat', 'lng', 'etaMin', 'active', 'updatedAt']) &&
+          incoming().userId == request.auth.uid &&
+          incoming().eventId == eventId &&
+          isValidResponder(incoming()) &&
+          exists(/databases/$(database)/documents/events/$(eventId)) &&
+          get(/databases/$(database)/documents/events/$(eventId)).data.status == 'active';
+
+        allow update: if isSignedIn() &&
+          isValidId(eventId) &&
+          isValidId(responderId) &&
+          request.auth.uid == responderId &&
+          incoming().userId == existing().userId &&
+          incoming().eventId == existing().eventId &&
+          isValidResponder(incoming()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['callsign', 'lat', 'lng', 'etaMin', 'active', 'updatedAt']);
+
+        allow delete: if isSignedIn() &&
+          isValidId(eventId) &&
+          isValidId(responderId) &&
+          (request.auth.uid == responderId || isOwner());
+      }
+    }
+  }
+}

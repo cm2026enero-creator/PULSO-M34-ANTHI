@@ -51,6 +51,7 @@
       flex-direction: column;
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       background: var(--bg);
     }
 
@@ -74,6 +75,7 @@
       font-size: 13px;
       letter-spacing: 0.6px;
       white-space: nowrap;
+      min-width: 0;
     }
 
     .status-dot {
@@ -93,6 +95,7 @@
     .nav-tabs {
       display: flex;
       gap: 4px;
+      flex-shrink: 0;
     }
 
     .nav-tab {
@@ -132,34 +135,34 @@
       display: flex;
     }
 
-    /* Permanent Top Leaflet Map */
+    /* Mapa urbano claro de calles y carreras (sin filtros oscuros ni inversión) */
     .map-section {
       position: relative;
       flex: 1;
-      min-height: 200px;
-      background: var(--bg);
+      min-height: 220px;
+      background: #E2E8F0;
       overflow: hidden;
     }
 
     #tacticalMap {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
-      background: var(--bg);
-    }
-
-    /* Dark tactical filter on OpenStreetMap tiles */
-    .leaflet-tile-pane {
-      filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(94%) saturate(65%);
+      min-height: 220px;
+      background: #E2E8F0;
     }
 
     .leaflet-container {
-      background: #070B12 !important;
+      width: 100%;
+      height: 100%;
+      background: #E2E8F0 !important;
       font-family: inherit;
     }
 
     .leaflet-control-attribution {
-      background: rgba(7, 11, 18, 0.75) !important;
-      color: #64748B !important;
+      background: rgba(7, 11, 18, 0.85) !important;
+      color: #CBD5E1 !important;
       font-size: 9px !important;
     }
 
@@ -182,13 +185,13 @@
     }
 
     .hud-card {
-      background: rgba(13, 21, 34, 0.92);
+      background: rgba(7, 11, 18, 0.92);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 7px 10px;
-      backdrop-filter: blur(6px);
       pointer-events: auto;
-      max-width: 68%;
+      max-width: 66%;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     }
 
     .hud-title {
@@ -214,6 +217,36 @@
       margin-top: 2px;
     }
 
+    .hud-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .hud-ev-btn {
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .hud-ev-btn.close {
+      border-color: var(--amber);
+      color: #FDE68A;
+      background: rgba(245, 158, 11, 0.16);
+    }
+
+    .hud-ev-btn.delete {
+      border-color: var(--sos);
+      color: #FFD1CE;
+      background: rgba(255, 59, 48, 0.22);
+    }
+
     .map-actions {
       display: flex;
       flex-direction: column;
@@ -222,7 +255,7 @@
     }
 
     .map-btn {
-      background: rgba(13, 21, 34, 0.94);
+      background: rgba(7, 11, 18, 0.94);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 9px;
@@ -234,6 +267,7 @@
       align-items: center;
       gap: 5px;
       white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }
 
     .map-btn.accent {
@@ -250,31 +284,36 @@
       position: absolute;
       bottom: 10px;
       left: 8px;
+      right: 8px;
       display: flex;
+      flex-wrap: wrap;
       gap: 5px;
       z-index: 420;
+      pointer-events: none;
     }
 
     .ev-pill {
-      background: rgba(13, 21, 34, 0.92);
+      pointer-events: auto;
+      background: rgba(7, 11, 18, 0.92);
       border: 1px solid var(--border);
-      color: var(--muted);
+      color: var(--text);
       border-radius: 8px;
       padding: 5px 9px;
       font-size: 11px;
       font-weight: 700;
       cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
     }
 
     .ev-pill.active {
-      background: rgba(255, 59, 48, 0.22);
-      border-color: var(--sos);
+      background: rgba(255, 59, 48, 0.92);
+      border-color: #FFFFFF;
       color: #fff;
     }
 
     .silent-banner {
       position: absolute;
-      bottom: 42px;
+      bottom: 44px;
       left: 8px;
       right: 8px;
       background: rgba(62, 13, 27, 0.95);
@@ -308,18 +347,18 @@
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: rgba(255, 59, 48, 0.35);
+      background: rgba(255, 59, 48, 0.38);
       animation: pulseRing 1.5s infinite ease-out;
     }
 
     .sos-core {
       position: relative;
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
       border-radius: 50%;
       background: var(--sos);
-      border: 2px solid #fff;
-      box-shadow: 0 0 10px var(--sos);
+      border: 2.5px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
 
     .sup-marker {
@@ -328,24 +367,24 @@
       border-radius: 50%;
       background: var(--accent);
       border: 2px solid #070B12;
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
     }
 
     .sup-marker.self {
       background: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan);
-      border-color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+      border-color: #070B12;
     }
 
     .map-label-tooltip {
-      background: rgba(13, 21, 34, 0.92) !important;
+      background: rgba(7, 11, 18, 0.94) !important;
       border: 1px solid #263854 !important;
-      color: #F1F5F9 !important;
+      color: #F8FAFC !important;
       font-size: 10px !important;
       font-weight: 700 !important;
       padding: 2px 6px !important;
       border-radius: 6px !important;
-      box-shadow: none !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
     }
 
     @keyframes pulseRing {
@@ -386,7 +425,12 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 54%;
+      max-width: 56%;
+    }
+
+    .role-badge.owner {
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .sivoy-wrap {
@@ -439,10 +483,6 @@
       text-align: left;
       font-size: 11px;
       cursor: pointer;
-    }
-
-    .sivoy-opt:active {
-      border-color: var(--accent);
     }
 
     /* On-air + TOT strip */
@@ -625,7 +665,7 @@
       color: #fff;
     }
 
-    /* Simulator & APK Tabs */
+    /* Simulator & ANTHI Tabs */
     .scroll-pane {
       flex: 1;
       overflow-y: auto;
@@ -697,6 +737,29 @@
       color: #ffb8b3;
     }
 
+    .field-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      padding: 9px 10px;
+      font-size: 12px;
+      user-select: text;
+    }
+
+    .ev-manage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11.5px;
+    }
+
     .log-item {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -731,27 +794,28 @@
     <div class="brand">
       <div id="statusDot" class="status-dot"></div>
       <span>PULSO M34</span>
-      <span id="anthiBadge" style="color:var(--cyan);font-size:10.5px;font-weight:600;">ANTHI · 2 EV</span>
+      <span id="anthiBadge" style="color:var(--cyan);font-size:10.5px;font-weight:700;">ANTHI · 2 EV</span>
     </div>
     <div class="nav-tabs">
       <button class="nav-tab active" id="tabBtn_tactical" onclick="switchTab('tactical')">Mapa + Radio</button>
-      <button class="nav-tab" id="tabBtn_sim" onclick="switchTab('sim')">Simulador</button>
-      <button class="nav-tab" id="tabBtn_anthi" onclick="switchTab('anthi')">ANTHI / APK</button>
+      <button class="nav-tab" id="tabBtn_sim" onclick="switchTab('sim')">Eventos</button>
+      <button class="nav-tab" id="tabBtn_anthi" onclick="switchTab('anthi')">ANTHI / Firebase</button>
     </div>
   </div>
 
   <div class="view-container">
-    <!-- TAB 1: Mapa Geográfico Permanente + Mini-Radio Inferior -->
+    <!-- TAB 1: Mapa Urbano de Calles y Carreras + Mini-Radio Inferior -->
     <div id="pane_tactical" class="view-pane active">
       <div class="map-section">
         <div id="tacticalMap"></div>
 
-        <!-- Telemetry HUD & Centering Controls -->
+        <!-- Telemetry HUD & Event Action Controls -->
         <div class="map-hud-top">
-          <div class="hud-card">
+          <div class="hud-card" id="hudCard">
             <div class="hud-title" id="hudEventTitle">EV.1 · Móvil 14 (ANTHI-3401)</div>
             <div class="hud-sector" id="hudEventSector">Hacia el Norte · Sector Café Madrid · 54 km/h</div>
             <div class="hud-meta" id="hudEventMeta">7.1524, -73.1296 · Rumbo 012° · 2 apoyos</div>
+            <div class="hud-actions" id="hudEventActions"></div>
           </div>
 
           <div class="map-actions">
@@ -772,7 +836,7 @@
       <!-- Compact One-Handed Floating Mini-Radio Dock -->
       <div class="radio-dock">
         <div class="dock-top-row">
-          <button class="role-badge" id="roleQuickChip" onclick="switchTab('sim')">
+          <button class="role-badge" id="roleQuickChip" onclick="switchTab('anthi')">
             Conductor · Sin confirmar
           </button>
 
@@ -811,23 +875,29 @@
       </div>
     </div>
 
-    <!-- TAB 2: Simulador de Escenarios -->
+    <!-- TAB 2: Gestión en Tiempo Real de Eventos y Pruebas -->
     <div id="pane_sim" class="view-pane">
       <div class="scroll-pane">
         <div class="panel-card">
-          <div class="panel-title">Eventos activos simultáneos (ANTHI M34)</div>
-          <div class="panel-sub">Con 1 evento el botón "Sí voy" es directo; con 2 o 3 abre desplegable.</div>
-          <div class="btn-grid">
-            <button class="sim-btn" id="simEv1" onclick="setEventCount(1)">1 Evento</button>
-            <button class="sim-btn active" id="simEv2" onclick="setEventCount(2)">2 Eventos</button>
-            <button class="sim-btn" id="simEv3" onclick="setEventCount(3)">3 Eventos</button>
+          <div class="panel-title">Eventos activos (Cierre y eliminación jerárquica)</div>
+          <div class="panel-sub" id="eventsRoleHint">
+            Administradores habilitados pueden cerrar eventos activos. Solo el Superadministrador / Dueño puede eliminarlos definitivamente.
+          </div>
+          <div id="activeEventsManageList" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button class="sim-btn active" id="seedEventsBtn" onclick="seedOrRestoreEvents()">
+              Cargar eventos (EV.1 · EV.2)
+            </button>
+            <button class="sim-btn sos" id="m34SkullBtn" onclick="triggerM34SkullAlarm()">
+              Escudito M34 · Activar SOS
+            </button>
           </div>
         </div>
 
         <div class="panel-card">
-          <div class="panel-title">Cambiar rol del dispositivo</div>
+          <div class="panel-title">Modo operativo local (TOT y Silencio)</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <button class="sim-btn" id="simRole_ADMIN" onclick="setRole('ADMIN')">Administrador (Acceso total · TOT 180s)</button>
+            <button class="sim-btn" id="simRole_ADMIN" onclick="setRole('ADMIN')">Administrador / Superadmin (Acceso total · TOT 180s)</button>
             <button class="sim-btn" id="simRole_DRIVER_CONFIRMED" onclick="setRole('DRIVER_CONFIRMED')">Conductor con "Sí voy" (Evento asignado · TOT 30s)</button>
             <button class="sim-btn active" id="simRole_DRIVER_UNCONFIRMED" onclick="setRole('DRIVER_UNCONFIRMED')">Conductor sin confirmar (TX bloqueado)</button>
             <button class="sim-btn sos" id="simRole_ALARM_EMITTER" onclick="setRole('ALARM_EMITTER')">Emisor en Alarma (Silencio total 0% + Captura)</button>
@@ -835,10 +905,10 @@
         </div>
 
         <div class="panel-card">
-          <div class="panel-title">Pruebas rápidas TOT y Silencio</div>
+          <div class="panel-title">Pruebas rápidas TOT y RX</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <button class="sim-btn amber" onclick="testTot30()">Probar corte TOT 30s</button>
-            <button class="sim-btn cyan" onclick="testTot180()">Probar corte TOT 180s</button>
+            <button class="sim-btn amber" onclick="testTot30()">Probar TOT 30s</button>
+            <button class="sim-btn cyan" onclick="testTot180()">Probar TOT 180s</button>
           </div>
           <button class="sim-btn sos" onclick="simulateIncomingRx()">Simular RX entrante (prueba silencio en Emisor)</button>
         </div>
@@ -850,47 +920,46 @@
       </div>
     </div>
 
-    <!-- TAB 3: Enlace ANTHI M34 + Puente Nativo APK + Firebase RTDB -->
+    <!-- TAB 3: Sesión Firebase ANTHI, Jerarquía y Códigos de Permiso -->
     <div id="pane_anthi" class="view-pane">
       <div class="scroll-pane">
         <div class="panel-card">
-          <div class="panel-title">Enlace Botón / Escudo M34 (ANTHI -> Pulso M34)</div>
-          <div class="panel-sub">Soporta Query String, Hash (#), postMessage y Deep Link (pulso34://abrir) con parámetros reales o modo prueba sin parámetros:</div>
-          <pre id="anthiParamsBox" class="code-box">Cargando parámetros...</pre>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <button class="sim-btn cyan" onclick="simulateAnthiLaunch('admin')">Simular Admin (Ev.2)</button>
-            <button class="sim-btn active" onclick="simulateAnthiLaunch('conductor_confirmado')">Simular Sí voy (Ev.1)</button>
-            <button class="sim-btn" onclick="simulateAnthiLaunch('conductor_sin_confirmar')">Sin confirmar</button>
-            <button class="sim-btn sos" onclick="simulateAnthiLaunch('emisor_alarma')">Emisor en Alarma</button>
+          <div class="panel-title">Sesión Firebase & Jerarquía ANTHI</div>
+          <div class="panel-sub" id="hierarchySummaryText">
+            Identidad vinculada con Google / Firebase Auth del ecosistema ANTHI.
           </div>
+          <pre id="firebaseSessionBox" class="code-box">Sincronizando sesión...</pre>
+          <button class="sim-btn sos" onclick="signOutFirebase()">Cerrar sesión ANTHI / Google</button>
         </div>
 
         <div class="panel-card">
-          <div class="panel-title">Puente Nativo AndroidPulsoBridge & Servicio</div>
+          <div class="panel-title">Habilitar rol Administrador mediante código</div>
+          <div class="panel-sub">
+            Ingresa el código de autorización generado por el Superadministrador en Firebase para habilitar funciones operativas y cierre de eventos.
+          </div>
+          <input id="adminCodeInput" class="field-input" type="password" placeholder="Código de permiso administrativo" />
+          <button class="sim-btn cyan" onclick="submitAdminCode()">Validar código en Firebase</button>
+        </div>
+
+        <div class="panel-card" id="ownerMasterPanel" style="display:none;">
+          <div class="panel-title">Control Maestro (Exclusivo Superadministrador / Dueño)</div>
+          <div class="panel-sub">
+            Crea o revoca códigos de acceso para administradores sin exponer permisos de eliminación de eventos ni control maestro.
+          </div>
+          <input id="newInviteLabel" class="field-input" type="text" placeholder="Etiqueta (ej. Central Nocturna)" />
+          <input id="newInviteCode" class="field-input" type="password" placeholder="Nuevo código (mín. 4 caracteres)" />
+          <button class="sim-btn active" onclick="createMasterInviteCode()">Crear código administrativo en Firebase</button>
+          <div id="invitesList" style="display:flex;flex-direction:column;gap:5px;"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Enlace Botón M34 y Puente Nativo APK</div>
+          <pre id="anthiParamsBox" class="code-box">Cargando parámetros...</pre>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <button class="sim-btn active" onclick="bridgeStartService()">Iniciar Servicio FGS</button>
             <button class="sim-btn sos" onclick="bridgeStopService()">Detener Servicio</button>
           </div>
           <pre id="bridgeStatusBox" class="code-box">Consultando puente...</pre>
-        </div>
-
-        <div class="panel-card">
-          <div class="panel-title">Estructura Firebase Realtime Database</div>
-          <pre class="code-box">{
-  "anthi_m34": {
-    "events": {
-      "1": { "code": "ANTHI-3401", "sector": "Café Madrid", "lat": 7.1524, "lng": -73.1296, "bearing": 12, "speedKmh": 54 },
-      "2": { "code": "ANTHI-3402", "sector": "Autopista Norte", "lat": 7.1645, "lng": -73.1338, "bearing": 340, "speedKmh": 68 }
-    }
-  },
-  "pulso_m34": {
-    "channels": {
-      "1": { "ptt_lock": "uid_driver_07", "tot_sec": 30 },
-      "victim_1": { "speaker_muted_on_emitter": true, "mic_cam_gps": "UPSTREAM" },
-      "admin": { "allowed_roles": ["ADMIN"], "tot_sec": 180 }
-    }
-  }
-}</pre>
         </div>
       </div>
     </div>
@@ -898,9 +967,9 @@
 </div>
 
 <script>
-  // Base de eventos reales en Bucaramanga (Sector Café Madrid / Autopista Norte / Parque Santander)
   const BASE_EVENTS = [
     {
+      id: "ev_1",
       number: 1,
       code: "ANTHI-3401",
       callsign: "Móvil 14",
@@ -910,12 +979,14 @@
       bearing: 12,
       speedKmh: 54,
       audioDb: 66,
+      status: "active",
       responders: [
         { id: "sup-1", callsign: "Apoyo B-19", lat: 7.1455, lng: -73.1248, etaMin: 3, isSelf: false },
         { id: "sup-2", callsign: "Unidad M-22", lat: 7.1588, lng: -73.1362, etaMin: 4, isSelf: false }
       ]
     },
     {
+      id: "ev_2",
       number: 2,
       code: "ANTHI-3402",
       callsign: "Móvil 29",
@@ -925,35 +996,30 @@
       bearing: 340,
       speedKmh: 68,
       audioDb: 59,
+      status: "active",
       responders: [
         { id: "sup-3", callsign: "Apoyo C-03", lat: 7.1560, lng: -73.1302, etaMin: 3, isSelf: false }
-      ]
-    },
-    {
-      number: 3,
-      code: "ANTHI-3403",
-      callsign: "Móvil 08",
-      sector: "Parque Santander · Cra 27 Sur",
-      lat: 7.1211,
-      lng: -73.1245,
-      bearing: 175,
-      speedKmh: 38,
-      audioDb: 71,
-      responders: [
-        { id: "sup-4", callsign: "Apoyo E-15", lat: 7.1275, lng: -73.1220, etaMin: 2, isSelf: false }
       ]
     }
   ];
 
   const appState = {
     uid: "anthi_driver_07",
+    email: "",
     alias: "Móvil 07",
+    hierarchy: "DRIVER",
+    isOwner: false,
+    isAdmin: false,
+    canCloseEvents: false,
+    canDeleteEvents: false,
+    firebaseConnected: false,
+    adminInvites: [],
     role: "DRIVER_UNCONFIRMED",
-    eventCount: 2,
     events: [],
     focusedEvent: 1,
     confirmedEvent: null,
     confirmedEventsList: [],
+    confirmedEventIds: [],
     selectedChannel: "1",
     userLocation: { lat: 7.1462, lng: -73.1332 },
     siVoyDropdownOpen: false,
@@ -972,85 +1038,58 @@
   let map = null;
   let mapLayerGroup = null;
 
+  function escapeHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function hasBridge() {
     return typeof window.AndroidPulsoBridge !== "undefined";
   }
 
-  function cloneEvents(count) {
-    return BASE_EVENTS.slice(0, count).map(ev => ({
+  function cloneEvents(list = BASE_EVENTS) {
+    return list.map(ev => ({
       ...ev,
-      responders: ev.responders.map(r => ({ ...r }))
+      responders: (ev.responders || []).map(r => ({ ...r }))
     }));
   }
 
   function normalizeAnthiRole(rawRole) {
     const r = String(rawRole || "").trim().toLowerCase();
-    if (r === "admin" || r === "administrador") return "ADMIN";
+    if (r === "admin" || r === "administrador" || r === "superadmin") return "ADMIN";
     if (r === "conductor_confirmado" || r === "driver_confirmed" || r === "si_voy") return "DRIVER_CONFIRMED";
     if (r === "emisor_alarma" || r === "alarm_emitter" || r === "victima" || r === "sos") return "ALARM_EMITTER";
     if (r === "conductor_sin_confirmar" || r === "driver_unconfirmed") return "DRIVER_UNCONFIRMED";
     return null;
   }
 
-  function parseEventsPayload(rawEvents) {
-    if (!rawEvents) return null;
-    if (Array.isArray(rawEvents)) return rawEvents;
-    const str = String(rawEvents).trim();
-    if (!str) return null;
-    if (str.startsWith("[")) {
-      try {
-        const parsed = JSON.parse(str);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (_) {}
-    }
-    if (/^\d+$/.test(str)) {
-      const n = Math.max(1, Math.min(3, Number(str)));
-      return cloneEvents(n);
-    }
-    const nums = str.split(",").map(x => Number(x.trim())).filter(n => n >= 1 && n <= 3);
-    if (nums.length > 0) {
-      return nums.map(n => cloneEvents(3).find(e => e.number === n)).filter(Boolean);
-    }
-    return null;
-  }
-
-  function parseConfirmedList(rawConfirmed) {
-    if (!rawConfirmed) return [];
-    if (Array.isArray(rawConfirmed)) {
-      return rawConfirmed.map(Number).filter(n => n >= 1 && n <= 3);
-    }
-    const str = String(rawConfirmed).trim();
-    if (str.startsWith("[")) {
-      try {
-        const arr = JSON.parse(str);
-        if (Array.isArray(arr)) return arr.map(Number).filter(n => n >= 1 && n <= 3);
-      } catch (_) {}
-    }
-    return str.split(",").map(x => Number(x.trim())).filter(n => n >= 1 && n <= 3);
-  }
-
-  // Inicializar mapa Leaflet con OpenStreetMap
+  // Mapa urbano estándar OpenStreetMap (calles y carreras claras, sin filtros oscuros)
   function initLeafletMap() {
     if (typeof L === "undefined") {
       document.getElementById("tacticalMap").innerHTML =
-        "<div style='padding:24px;color:#94A3B8;font-size:12px;'>Leaflet requiere conexión para cargar tiles OpenStreetMap.</div>";
+        "<div style='padding:24px;color:#0F172A;font-size:12px;'>Leaflet requiere conexión para cargar calles de OpenStreetMap.</div>";
       return;
     }
 
     map = L.map("tacticalMap", {
       center: [7.1524, -73.1296],
       zoom: 14,
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: true
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "&copy; OpenStreetMap"
     }).addTo(map);
 
     mapLayerGroup = L.layerGroup().addTo(map);
     renderMapLayers();
+    setTimeout(() => { if (map) map.invalidateSize(); }, 250);
   }
 
   function destinationPoint(lat, lng, bearingDeg, distanceMeters) {
@@ -1059,7 +1098,6 @@
     const lat1 = (lat * Math.PI) / 180;
     const lng1 = (lng * Math.PI) / 180;
     const dr = distanceMeters / R;
-
     const lat2 = Math.asin(
       Math.sin(lat1) * Math.cos(dr) + Math.cos(lat1) * Math.sin(dr) * Math.cos(brng)
     );
@@ -1069,7 +1107,6 @@
         Math.sin(brng) * Math.sin(dr) * Math.cos(lat1),
         Math.cos(dr) - Math.sin(lat1) * Math.sin(lat2)
       );
-
     return [(lat2 * 180) / Math.PI, (lng2 * 180) / Math.PI];
   }
 
@@ -1084,7 +1121,7 @@
         iconSize: [14, 14],
         iconAnchor: [7, 7]
       })
-    }).bindTooltip(`TÚ · ${appState.alias}`, {
+    }).bindTooltip(`TÚ · ${escapeHtml(appState.alias)}`, {
       permanent: true,
       direction: "bottom",
       offset: [0, 8],
@@ -1095,51 +1132,35 @@
     if (appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent) {
       const targetEv = appState.events.find(e => e.number === appState.confirmedEvent);
       if (targetEv) {
-        const selfIntercept = L.polyline(
-          [
-            [appState.userLocation.lat, appState.userLocation.lng],
-            [targetEv.lat, targetEv.lng]
-          ],
-          { color: "#06B6D4", weight: 2.5, dashArray: "7 6", opacity: 0.9 }
+        mapLayerGroup.addLayer(
+          L.polyline(
+            [[appState.userLocation.lat, appState.userLocation.lng], [targetEv.lat, targetEv.lng]],
+            { color: "#0284C7", weight: 3, dashArray: "7 6", opacity: 0.9 }
+          )
         );
-        mapLayerGroup.addLayer(selfIntercept);
       }
     }
 
     appState.events.forEach(ev => {
       const isFocused = ev.number === appState.focusedEvent;
-      const vectorTip = destinationPoint(ev.lat, ev.lng, ev.bearing, isFocused ? 520 : 340);
-      const vectorLine = L.polyline(
-        [
-          [ev.lat, ev.lng],
-          vectorTip
-        ],
-        {
-          color: isFocused ? "#F59E0B" : "#FF3B30",
-          weight: isFocused ? 3.5 : 2,
-          opacity: isFocused ? 0.95 : 0.65
-        }
+      const vectorTip = destinationPoint(ev.lat, ev.lng, ev.bearing || 0, isFocused ? 460 : 300);
+      mapLayerGroup.addLayer(
+        L.polyline([[ev.lat, ev.lng], vectorTip], {
+          color: isFocused ? "#D97706" : "#FF3B30",
+          weight: isFocused ? 3.5 : 2.5,
+          opacity: 0.9
+        })
       );
-      mapLayerGroup.addLayer(vectorLine);
 
-      const tipDot = L.circleMarker(vectorTip, {
-        radius: isFocused ? 4 : 3,
-        color: "#F59E0B",
-        fillColor: "#F59E0B",
-        fillOpacity: 1
-      });
-      mapLayerGroup.addLayer(tipDot);
-
-      ev.responders.forEach(unit => {
-        const intercept = L.polyline(
-          [
-            [unit.lat, unit.lng],
-            [ev.lat, ev.lng]
-          ],
-          { color: "#00E5A8", weight: 1.8, dashArray: "5 5", opacity: 0.72 }
+      (ev.responders || []).forEach(unit => {
+        mapLayerGroup.addLayer(
+          L.polyline([[unit.lat, unit.lng], [ev.lat, ev.lng]], {
+            color: "#059669",
+            weight: 2.2,
+            dashArray: "5 5",
+            opacity: 0.85
+          })
         );
-        mapLayerGroup.addLayer(intercept);
-
         const supMarker = L.marker([unit.lat, unit.lng], {
           icon: L.divIcon({
             className: "",
@@ -1147,7 +1168,7 @@
             iconSize: [14, 14],
             iconAnchor: [7, 7]
           })
-        }).bindTooltip(`${unit.callsign} (${unit.etaMin}m)`, {
+        }).bindTooltip(`${escapeHtml(unit.callsign)} (${unit.etaMin}m)`, {
           permanent: isFocused,
           direction: "top",
           offset: [0, -6],
@@ -1179,9 +1200,7 @@
     const ev = appState.events.find(e => e.number === eventNumber);
     if (!ev) return;
     appState.focusedEvent = eventNumber;
-    if (map) {
-      map.flyTo([ev.lat, ev.lng], 15, { duration: 0.65 });
-    }
+    if (map) map.flyTo([ev.lat, ev.lng], 15, { duration: 0.55 });
     renderAll();
   }
 
@@ -1193,30 +1212,26 @@
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
-          appState.userLocation = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude
-          };
-          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+          appState.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.55 });
           renderMapLayers();
         },
         () => {
-          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+          if (map) map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.55 });
         },
         { enableHighAccuracy: true, timeout: 3000 }
       );
     } else if (map) {
-      map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.65 });
+      map.flyTo([appState.userLocation.lat, appState.userLocation.lng], 15, { duration: 0.55 });
     }
   }
 
   function playRadioTone(freqStart, freqEnd, durationMs) {
-    if (appState.role === "ALARM_EMITTER") return; // CERO audio saliente
+    if (appState.role === "ALARM_EMITTER") return;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!appState.audioCtx) appState.audioCtx = new Ctx();
       if (appState.audioCtx.state === "suspended") appState.audioCtx.resume();
-
       const now = appState.audioCtx.currentTime;
       const osc = appState.audioCtx.createOscillator();
       const gain = appState.audioCtx.createGain();
@@ -1241,7 +1256,7 @@
         reason: "SILENCIO TOTAL: altavoz deshabilitado · captura activa"
       };
     }
-    if (appState.role === "ADMIN") {
+    if (appState.role === "ADMIN" || appState.isAdmin || appState.isOwner) {
       return { canListen: true, canTransmit: true, maxTot: 180, reason: null };
     }
     if (appState.role === "DRIVER_UNCONFIRMED") {
@@ -1249,16 +1264,14 @@
         canListen: channel !== "ADMIN" && channel !== "VICTIMA",
         canTransmit: false,
         maxTot: 30,
-        reason: channel === "ADMIN"
-          ? "Canal exclusivo para Administradores"
-          : "Confirma 'Sí voy' para transmitir"
+        reason: channel === "ADMIN" ? "Canal exclusivo Administradores" : "Confirma 'Sí voy' para transmitir"
       };
     }
     if (channel === "ADMIN") {
       return { canListen: false, canTransmit: false, maxTot: 30, reason: "Canal exclusivo Administradores" };
     }
     if (channel === "VICTIMA") {
-      return { canListen: true, canTransmit: false, maxTot: 30, reason: "Canal VÍCTIMA: solo monitoreo de cabina" };
+      return { canListen: true, canTransmit: false, maxTot: 30, reason: "Canal VÍCTIMA: solo monitoreo" };
     }
     if (appState.confirmedEventsList.includes(Number(channel)) || Number(channel) === appState.confirmedEvent) {
       return { canListen: true, canTransmit: true, maxTot: 30, reason: null };
@@ -1267,13 +1280,13 @@
       canListen: true,
       canTransmit: false,
       maxTot: 30,
-      reason: `Autorizado solo en Evento ${appState.confirmedEvent || 1}`
+      reason: `Autorizado en Evento ${appState.confirmedEvent || 1}`
     };
   }
 
   function onSiVoyButtonClick() {
-    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER") return;
-    if (appState.events.length <= 1) {
+    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER" || appState.events.length === 0) return;
+    if (appState.events.length === 1) {
       const singleNum = appState.events[0].number;
       if (appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent === singleNum) {
         setRole("DRIVER_UNCONFIRMED");
@@ -1288,6 +1301,9 @@
 
   function confirmSiVoyEvent(eventNumber) {
     stopPtt(true);
+    const ev = appState.events.find(e => e.number === eventNumber);
+    if (!ev) return;
+
     appState.role = "DRIVER_CONFIRMED";
     appState.confirmedEvent = eventNumber;
     if (!appState.confirmedEventsList.includes(eventNumber)) {
@@ -1297,7 +1313,135 @@
     appState.siVoyDropdownOpen = false;
     focusEvent(eventNumber);
     syncNativeBridge(true);
+
+    if (hasBridge() && appState.firebaseConnected && window.AndroidPulsoBridge.confirmSiVoyFirestore) {
+      window.AndroidPulsoBridge.confirmSiVoyFirestore(
+        ev.id || ("ev_" + eventNumber),
+        eventNumber,
+        appState.alias,
+        appState.userLocation.lat,
+        appState.userLocation.lng
+      );
+    }
+
     addLog(`EV.${eventNumber}`, "SÍ VOY", `Apoyo confirmado en Evento ${eventNumber} (TOT 30s).`, false);
+    renderAll();
+  }
+
+  function closeEventAction(eventId, eventNumber) {
+    if (!appState.canCloseEvents && !appState.isAdmin && !appState.isOwner) {
+      addLog("SEGURIDAD", "DENEGADO", "Requiere código de Administrador o Superadmin para cerrar eventos.", true);
+      renderSimulatorTab();
+      return;
+    }
+    if (hasBridge() && appState.firebaseConnected && window.AndroidPulsoBridge.closeEventFirestore) {
+      window.AndroidPulsoBridge.closeEventFirestore(eventId);
+    } else {
+      removeEventLocally(eventId, "CERRADO");
+    }
+  }
+
+  function deleteEventAction(eventId, eventNumber) {
+    if (!appState.isOwner && !appState.canDeleteEvents) {
+      addLog("SEGURIDAD", "EXCLUSIVO DUEÑO", "Solo el Superadministrador / Dueño puede eliminar eventos.", true);
+      renderSimulatorTab();
+      return;
+    }
+    if (hasBridge() && appState.firebaseConnected && window.AndroidPulsoBridge.deleteEventFirestore) {
+      window.AndroidPulsoBridge.deleteEventFirestore(eventId);
+    } else {
+      removeEventLocally(eventId, "ELIMINADO");
+    }
+  }
+
+  function removeEventLocally(eventId, actionLabel) {
+    const removed = appState.events.find(e => e.id === eventId || ("ev_" + e.number) === eventId);
+    appState.events = appState.events.filter(e => e.id !== eventId && ("ev_" + e.number) !== eventId);
+    reconcileEventSelection();
+    if (removed) {
+      addLog(`EV.${removed.number}`, actionLabel, `Evento ${removed.code} retirado del mapa y canales activos.`, actionLabel === "ELIMINADO");
+    }
+    renderAll();
+  }
+
+  function reconcileEventSelection() {
+    if (appState.events.length === 0) {
+      appState.focusedEvent = 0;
+      appState.confirmedEvent = null;
+      appState.confirmedEventsList = [];
+      if (["1", "2", "3"].includes(appState.selectedChannel)) {
+        appState.selectedChannel = (appState.isAdmin || appState.isOwner) ? "ADMIN" : "VICTIMA";
+      }
+      return;
+    }
+    if (!appState.events.some(e => e.number === appState.focusedEvent)) {
+      appState.focusedEvent = appState.events[0].number;
+    }
+    appState.confirmedEventsList = appState.confirmedEventsList.filter(n =>
+      appState.events.some(e => e.number === n)
+    );
+    if (appState.confirmedEvent && !appState.events.some(e => e.number === appState.confirmedEvent)) {
+      appState.confirmedEvent = appState.confirmedEventsList[0] || null;
+      if (!appState.confirmedEvent && appState.role === "DRIVER_CONFIRMED") {
+        appState.role = "DRIVER_UNCONFIRMED";
+      }
+    }
+    if (["1", "2", "3"].includes(appState.selectedChannel) && !appState.events.some(e => String(e.number) === appState.selectedChannel)) {
+      appState.selectedChannel = String(appState.focusedEvent);
+    }
+  }
+
+  function seedOrRestoreEvents() {
+    if (hasBridge() && appState.firebaseConnected && window.AndroidPulsoBridge.seedInitialEvents) {
+      window.AndroidPulsoBridge.seedInitialEvents();
+    } else {
+      appState.events = cloneEvents(BASE_EVENTS);
+      appState.focusedEvent = 1;
+      appState.selectedChannel = "1";
+      addLog("ANTHI", "EVENTOS", "Eventos EV.1 y EV.2 restaurados en el mapa.", false);
+      renderAll();
+    }
+  }
+
+  function triggerM34SkullAlarm() {
+    const nextNum = appState.events.reduce((max, ev) => Math.max(max, Number(ev.number) || 0), 2) + 1;
+    const newId = "ev_" + nextNum;
+    const lat = appState.userLocation.lat || 7.1524;
+    const lng = appState.userLocation.lng || -73.1296;
+
+    appState.role = "ALARM_EMITTER";
+    appState.selectedChannel = "VICTIMA";
+    appState.focusedEvent = nextNum;
+
+    if (hasBridge() && window.AndroidPulsoBridge.activateM34AlarmEvent) {
+      window.AndroidPulsoBridge.activateM34AlarmEvent(
+        newId,
+        nextNum,
+        appState.alias || "Móvil SOS",
+        "Alerta Escudito M34 · En ruta",
+        lat,
+        lng
+      );
+    } else {
+      appState.events.push({
+        id: newId,
+        number: nextNum,
+        code: "ANTHI-SOS-" + nextNum,
+        callsign: appState.alias || "Móvil SOS",
+        sector: "Alerta Escudito M34 · En ruta",
+        lat,
+        lng,
+        bearing: 0,
+        speedKmh: 0,
+        audioDb: 72,
+        active: true,
+        status: "active",
+        responders: []
+      });
+    }
+    syncNativeBridge(true);
+    addLog("M34", "CALAVERA SOS", `Evento ${newId} activado en 2º plano con silencio 0% en emisor.`, true);
+    switchTab("tactical");
     renderAll();
   }
 
@@ -1305,31 +1449,11 @@
     stopPtt(true);
     appState.selectedChannel = String(ch);
     appState.siVoyDropdownOpen = false;
-    if (["1", "2", "3"].includes(appState.selectedChannel)) {
+    if (appState.events.some(e => String(e.number) === appState.selectedChannel)) {
       focusEvent(Number(appState.selectedChannel));
     } else {
       renderAll();
     }
-  }
-
-  function setEventCount(count) {
-    stopPtt(true);
-    appState.eventCount = count;
-    appState.events = cloneEvents(count);
-    if (appState.focusedEvent > count) appState.focusedEvent = 1;
-    appState.confirmedEventsList = appState.confirmedEventsList.filter(n => n <= count);
-    if (appState.confirmedEvent && appState.confirmedEvent > count) {
-      appState.confirmedEvent = appState.confirmedEventsList[0] || null;
-      if (!appState.confirmedEvent && appState.role === "DRIVER_CONFIRMED") {
-        appState.role = "DRIVER_UNCONFIRMED";
-      }
-    }
-    if (["1", "2", "3"].includes(appState.selectedChannel) && Number(appState.selectedChannel) > count) {
-      appState.selectedChannel = "1";
-    }
-    appState.siVoyDropdownOpen = false;
-    addLog("SIM", "EVENTOS", `Escenario actualizado a ${count} evento(s) activo(s).`, false);
-    renderAll();
   }
 
   function setRole(newRole) {
@@ -1337,18 +1461,16 @@
     clearTimeout(appState.rxTimeout);
     appState.rxActive = false;
     appState.role = newRole;
-    if (newRole === "DRIVER_CONFIRMED" && !appState.confirmedEvent) {
-      appState.confirmedEvent = appState.focusedEvent;
-      appState.confirmedEventsList = [appState.focusedEvent];
+    if (newRole === "DRIVER_CONFIRMED" && !appState.confirmedEvent && appState.events.length > 0) {
+      appState.confirmedEvent = appState.focusedEvent || appState.events[0].number;
+      appState.confirmedEventsList = [appState.confirmedEvent];
       appState.selectedChannel = String(appState.confirmedEvent);
     }
-    if (newRole === "DRIVER_UNCONFIRMED") {
+    if (newRole === "DRIVER_UNCONFIRMED" || newRole === "ALARM_EMITTER") {
       appState.confirmedEvent = null;
       appState.confirmedEventsList = [];
     }
     if (newRole === "ALARM_EMITTER") {
-      appState.confirmedEvent = null;
-      appState.confirmedEventsList = [];
       appState.selectedChannel = "VICTIMA";
     }
     appState.siVoyDropdownOpen = false;
@@ -1358,7 +1480,7 @@
       "CAMBIO ROL",
       newRole === "ALARM_EMITTER"
         ? "Emisor en Alarma activo: altavoz silenciado 0%, captura mic/cam/GPS."
-        : `Rol activo: ${roleLabel(newRole)}.`,
+        : `Rol operativo: ${roleLabel(newRole)}.`,
       newRole === "ALARM_EMITTER"
     );
     renderAll();
@@ -1400,14 +1522,12 @@
     if (!appState.txActive) return;
     clearInterval(appState.totInterval);
     appState.txActive = false;
-    if (!silentStop) {
-      playRadioTone(1180, 780, 110);
-    }
+    if (!silentStop) playRadioTone(1180, 780, 110);
     renderDock();
   }
 
   function testTot30() {
-    confirmSiVoyEvent(appState.focusedEvent);
+    if (appState.events.length > 0) confirmSiVoyEvent(appState.focusedEvent || appState.events[0].number);
     switchTab("tactical");
     startPtt(null, 5);
   }
@@ -1434,7 +1554,6 @@
       : appState.selectedChannel === "VICTIMA"
         ? `CABINA SOS EV.${appState.focusedEvent}`
         : "APOYO ALPHA-4";
-    addLog(`CH ${appState.selectedChannel}`, appState.rxSpeaker, "Transmisión RX entrante en curso.", false);
     switchTab("tactical");
     renderDock();
 
@@ -1446,19 +1565,62 @@
     }, 3200);
   }
 
+  function submitAdminCode() {
+    const code = (document.getElementById("adminCodeInput").value || "").trim();
+    if (code.length < 4) {
+      addLog("FIREBASE", "CÓDIGO", "Ingresa un código válido de al menos 4 caracteres.", true);
+      renderSimulatorTab();
+      return;
+    }
+    if (hasBridge() && window.AndroidPulsoBridge.redeemAdminCode) {
+      window.AndroidPulsoBridge.redeemAdminCode(code, appState.alias);
+      document.getElementById("adminCodeInput").value = "";
+    }
+  }
+
+  function createMasterInviteCode() {
+    const label = (document.getElementById("newInviteLabel").value || "").trim();
+    const rawCode = (document.getElementById("newInviteCode").value || "").trim();
+    if (rawCode.length < 4) {
+      addLog("MASTER", "CÓDIGO", "El código maestro debe tener al menos 4 caracteres.", true);
+      renderSimulatorTab();
+      return;
+    }
+    if (hasBridge() && window.AndroidPulsoBridge.createAdminInviteCode) {
+      window.AndroidPulsoBridge.createAdminInviteCode(label || "Central M34", rawCode);
+      document.getElementById("newInviteLabel").value = "";
+      document.getElementById("newInviteCode").value = "";
+    }
+  }
+
+  function revokeMasterInviteCode(hash) {
+    if (hasBridge() && window.AndroidPulsoBridge.revokeAdminInvite) {
+      window.AndroidPulsoBridge.revokeAdminInvite(hash);
+    }
+  }
+
+  function signOutFirebase() {
+    if (hasBridge() && window.AndroidPulsoBridge.signOutAnthi) {
+      window.AndroidPulsoBridge.signOutAnthi();
+    }
+  }
+
   function syncNativeBridge(startService = true) {
     const emitter = appState.role === "ALARM_EMITTER";
+    const activeEvObj = appState.events.find(e => e.number === appState.focusedEvent);
+    const activeEvId = activeEvObj ? (activeEvObj.id || ("ev_" + activeEvObj.number)) : ("ev_" + (appState.focusedEvent || 1));
     if (hasBridge()) {
       window.AndroidPulsoBridge.setEmitterSilentMode(emitter);
       if (startService) {
-        window.AndroidPulsoBridge.startTacticalService(appState.role, String(appState.focusedEvent));
+        window.AndroidPulsoBridge.startTacticalService(appState.role, activeEvId);
       }
     }
   }
 
   function roleLabel(role) {
+    if (appState.isOwner && role !== "ALARM_EMITTER") return "Superadmin / Dueño (180s)";
+    if ((appState.isAdmin || role === "ADMIN") && role !== "ALARM_EMITTER") return "Administrador (180s)";
     switch (role) {
-      case "ADMIN": return "Administrador (180s)";
       case "DRIVER_CONFIRMED": return `Conductor · Sí voy (Ev.${appState.confirmedEvent || 1})`;
       case "ALARM_EMITTER": return "Emisor en Alarma (Silencio)";
       default: return "Conductor · Sin confirmar";
@@ -1471,7 +1633,7 @@
       document.getElementById("tabBtn_" + id).classList.toggle("active", id === tab);
     });
     if (tab === "tactical" && map) {
-      setTimeout(() => map.invalidateSize(), 60);
+      setTimeout(() => map.invalidateSize(), 80);
     }
     if (tab === "anthi") {
       refreshAnthiPanel();
@@ -1483,6 +1645,7 @@
     renderMapLayers();
     renderDock();
     renderSimulatorTab();
+    refreshAnthiPanel();
   }
 
   function renderHudAndMapPills() {
@@ -1492,12 +1655,30 @@
     document.getElementById("statusDot").classList.toggle("sos", isEmitter);
     document.getElementById("silentBanner").classList.toggle("visible", isEmitter);
 
+    const actionsEl = document.getElementById("hudEventActions");
     if (ev) {
       document.getElementById("hudEventTitle").textContent = `EV.${ev.number} · ${ev.callsign} (${ev.code})`;
       document.getElementById("hudEventSector").textContent = `${ev.sector} · ${ev.speedKmh} km/h`;
-      const totalSup = ev.responders.length + (appState.confirmedEvent === ev.number ? 1 : 0);
+      const totalSup = (ev.responders || []).length + (appState.confirmedEvent === ev.number ? 1 : 0);
       document.getElementById("hudEventMeta").textContent =
-        `${ev.lat.toFixed(4)}, ${ev.lng.toFixed(4)} · Rumbo ${String(ev.bearing).padStart(3, "0")}° · ${totalSup} apoyos`;
+        `${Number(ev.lat).toFixed(4)}, ${Number(ev.lng).toFixed(4)} · Rumbo ${String(ev.bearing || 0).padStart(3, "0")}° · ${totalSup} apoyos`;
+
+      let actionButtonsHtml = "";
+      const evId = escapeHtml(ev.id || ("ev_" + ev.number));
+      if (appState.canCloseEvents || appState.isAdmin || appState.isOwner) {
+        actionButtonsHtml += `<button class="hud-ev-btn close" onclick="closeEventAction('${evId}', ${ev.number})">Cerrar EV.${ev.number}</button>`;
+      }
+      if (appState.canDeleteEvents || appState.isOwner) {
+        actionButtonsHtml += `<button class="hud-ev-btn delete" onclick="deleteEventAction('${evId}', ${ev.number})">Eliminar EV.${ev.number}</button>`;
+      }
+      actionsEl.innerHTML = actionButtonsHtml;
+    } else {
+      document.getElementById("hudEventTitle").textContent = "Sin eventos activos";
+      document.getElementById("hudEventSector").textContent = "Todos los incidentes han sido cerrados o eliminados.";
+      document.getElementById("hudEventMeta").textContent = "Mapa urbano en monitoreo continuo";
+      actionsEl.innerHTML = (appState.isOwner || appState.isAdmin)
+        ? `<button class="hud-ev-btn" onclick="seedOrRestoreEvents()">Cargar eventos</button>`
+        : "";
     }
 
     const bar = document.getElementById("mapEventBar");
@@ -1508,26 +1689,29 @@
 
   function renderDock() {
     const access = computeAccess(appState.selectedChannel);
-    document.getElementById("roleQuickChip").textContent = roleLabel(appState.role);
+    const chip = document.getElementById("roleQuickChip");
+    chip.textContent = roleLabel(appState.role);
+    chip.classList.toggle("owner", appState.isOwner);
 
     const siVoyWrap = document.getElementById("siVoyContainer");
     const siVoyBtn = document.getElementById("siVoyBtn");
     const dropdown = document.getElementById("siVoyDropdown");
 
-    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER") {
+    if (appState.role === "ADMIN" || appState.role === "ALARM_EMITTER" || appState.events.length === 0) {
       siVoyWrap.style.display = "none";
     } else {
       siVoyWrap.style.display = "block";
       const confirmed = appState.role === "DRIVER_CONFIRMED" && appState.confirmedEvent;
       siVoyBtn.classList.toggle("confirmed", Boolean(confirmed));
-      if (appState.events.length <= 1) {
-        siVoyBtn.textContent = confirmed ? `En ruta · Ev.${appState.confirmedEvent} ✓` : "Sí voy · Ev.1";
+      if (appState.events.length === 1) {
+        const single = appState.events[0];
+        siVoyBtn.textContent = confirmed ? `En ruta · Ev.${appState.confirmedEvent} ✓` : `Sí voy · Ev.${single.number}`;
       } else {
         siVoyBtn.textContent = confirmed ? `En ruta · Ev.${appState.confirmedEvent} ▾` : "Sí voy ▾";
       }
       dropdown.classList.toggle("open", appState.siVoyDropdownOpen);
       dropdown.innerHTML = appState.events.map(ev =>
-        `<button class="sivoy-opt" onclick="confirmSiVoyEvent(${ev.number})"><strong>Evento ${ev.number}</strong> · ${ev.sector}</button>`
+        `<button class="sivoy-opt" onclick="confirmSiVoyEvent(${ev.number})"><strong>Evento ${ev.number}</strong> · ${escapeHtml(ev.sector)}</button>`
       ).join("");
     }
 
@@ -1548,9 +1732,9 @@
         k.cls,
         active ? "active" : "",
         isConfirmedEv ? "confirmed-dot" : "",
-        (!chAccess.canTransmit && !isConfirmedEv && appState.role !== "ADMIN") ? "locked" : ""
+        (!chAccess.canTransmit && !isConfirmedEv && !appState.isAdmin && !appState.isOwner && appState.role !== "ADMIN") ? "locked" : ""
       ].filter(Boolean).join(" ");
-      return `<button class="${classes}" onclick="selectChannel('${k.id}')">${k.label}</button>`;
+      return `<button class="${classes}" onclick="selectChannel('${k.id}')">${escapeHtml(k.label)}</button>`;
     }).join("");
 
     const onAirCard = document.getElementById("onAirCard");
@@ -1563,7 +1747,6 @@
 
     const warnLimit = appState.totLimit >= 180 ? 10 : 5;
     const isWarn = appState.txActive && appState.totRemaining <= warnLimit;
-
     onAirCard.className = "on-air-card" + (isWarn ? " warn" : appState.txActive ? " tx" : appState.rxActive ? " rx" : "");
 
     const activeTot = appState.txActive ? appState.totRemaining : access.maxTot;
@@ -1601,12 +1784,12 @@
     } else {
       const ev = appState.events.find(e => e.number === appState.focusedEvent);
       airTitle.textContent = appState.selectedChannel === "VICTIMA"
-        ? `Canal VÍCTIMA · Evento ${appState.focusedEvent}`
+        ? `Canal VÍCTIMA · Evento ${appState.focusedEvent || "-"}`
         : appState.selectedChannel === "ADMIN"
           ? "Canal ADMIN · Directrices"
           : `Canal Evento ${appState.selectedChannel} · Libre`;
       airSub.textContent = appState.selectedChannel === "VICTIMA" && access.canListen && ev
-        ? `Cabina ${Math.round(ev.audioDb)} dB · Cámara discreta · GPS activo`
+        ? `Cabina ${Math.round(ev.audioDb || 60)} dB · Cámara discreta · GPS activo`
         : (access.reason || `Listo · Máximo ${access.maxTot}s por pulsación`);
       totChip.textContent = `TOT ${mm}:${ss}`;
       totChip.className = "tot-chip";
@@ -1619,24 +1802,79 @@
   }
 
   function renderSimulatorTab() {
-    [1, 2, 3].forEach(n => {
-      document.getElementById("simEv" + n).classList.toggle("active", appState.eventCount === n);
-    });
     ["ADMIN", "DRIVER_CONFIRMED", "DRIVER_UNCONFIRMED", "ALARM_EMITTER"].forEach(r => {
       document.getElementById("simRole_" + r).classList.toggle("active", appState.role === r);
     });
+
+    const manageList = document.getElementById("activeEventsManageList");
+    if (appState.events.length === 0) {
+      manageList.innerHTML = `<div class="log-item">No hay eventos activos en este momento.</div>`;
+    } else {
+      manageList.innerHTML = appState.events.map(ev => {
+        const evId = escapeHtml(ev.id || ("ev_" + ev.number));
+        const closeBtn = (appState.canCloseEvents || appState.isAdmin || appState.isOwner)
+          ? `<button class="hud-ev-btn close" onclick="closeEventAction('${evId}', ${ev.number})">Cerrar</button>`
+          : "";
+        const delBtn = (appState.canDeleteEvents || appState.isOwner)
+          ? `<button class="hud-ev-btn delete" onclick="deleteEventAction('${evId}', ${ev.number})">Eliminar</button>`
+          : "";
+        return `
+          <div class="ev-manage-row">
+            <div>
+              <strong>EV.${ev.number} · ${escapeHtml(ev.code)}</strong>
+              <div style="color:var(--muted);font-size:10.5px;">${escapeHtml(ev.sector)}</div>
+            </div>
+            <div style="display:flex;gap:5px;flex-shrink:0;">
+              ${closeBtn}
+              ${delBtn}
+            </div>
+          </div>`;
+      }).join("");
+    }
+
     document.getElementById("logList").innerHTML = appState.logs.slice(0, 12).map(l =>
-      `<div class="log-item ${l.alert ? "alert" : ""}"><strong>[${l.time}] ${l.ch} · ${l.actor}:</strong> ${l.msg}</div>`
+      `<div class="log-item ${l.alert ? "alert" : ""}"><strong>[${escapeHtml(l.time)}] ${escapeHtml(l.ch)} · ${escapeHtml(l.actor)}:</strong> ${escapeHtml(l.msg)}</div>`
     ).join("");
   }
 
   function refreshAnthiPanel() {
+    const sessionSummary = {
+      firebaseConnected: appState.firebaseConnected,
+      uid: appState.uid,
+      email: appState.email || "(sesión local)",
+      alias: appState.alias,
+      hierarchy: appState.hierarchy,
+      canCloseEvents: appState.canCloseEvents || appState.isAdmin || appState.isOwner,
+      canDeleteEvents: appState.canDeleteEvents || appState.isOwner,
+      canManageMasterCodes: appState.isOwner
+    };
+    document.getElementById("firebaseSessionBox").textContent = JSON.stringify(sessionSummary, null, 2);
+
+    const ownerPanel = document.getElementById("ownerMasterPanel");
+    ownerPanel.style.display = appState.isOwner ? "flex" : "none";
+
+    const invitesList = document.getElementById("invitesList");
+    if (appState.isOwner && invitesList) {
+      if (appState.adminInvites.length === 0) {
+        invitesList.innerHTML = `<div class="log-item">Sin códigos creados aún. Crea uno arriba para habilitar administradores.</div>`;
+      } else {
+        invitesList.innerHTML = appState.adminInvites.map(inv => `
+          <div class="ev-manage-row">
+            <div>
+              <strong>${escapeHtml(inv.label)}</strong>
+              <div style="color:var(--muted);font-size:10px;">Estado: ${inv.active ? "Activo" : "Revocado"} · ${escapeHtml(String(inv.hash).slice(0, 12))}...</div>
+            </div>
+            ${inv.active ? `<button class="hud-ev-btn delete" onclick="revokeMasterInviteCode('${escapeHtml(inv.hash)}')">Revocar</button>` : ""}
+          </div>
+        `).join("");
+      }
+    }
+
     const params = {
       source: appState.launchSource,
       uid: appState.uid,
       alias: appState.alias,
       role: appState.role,
-      eventsCount: appState.events.length,
       activeEvent: appState.focusedEvent,
       confirmedEvents: appState.confirmedEventsList
     };
@@ -1648,13 +1886,13 @@
       document.getElementById("bridgeStatusBox").textContent = JSON.stringify({ ver, perms }, null, 2);
     } else {
       document.getElementById("bridgeStatusBox").textContent =
-        "Ejecutando en navegador web (AndroidPulsoBridge activo solo dentro de la APK Android).";
+        "Ejecutando en navegador web (puente nativo activo dentro de la APK Android).";
     }
   }
 
   function bridgeStartService() {
     if (hasBridge()) {
-      window.AndroidPulsoBridge.startTacticalService(appState.role, String(appState.focusedEvent));
+      window.AndroidPulsoBridge.startTacticalService(appState.role, String(appState.focusedEvent || 1));
       setTimeout(refreshAnthiPanel, 250);
     }
   }
@@ -1666,61 +1904,72 @@
     }
   }
 
-  function simulateAnthiLaunch(anthiRole) {
-    const payloads = {
-      admin: {
-        uid: "anthi_admin_01",
-        alias: "Central M34",
-        role: "admin",
-        events: "1,2,3",
-        activeEvent: "2",
-        confirmedEvents: "1,2"
-      },
-      conductor_confirmado: {
-        uid: "anthi_movil_07",
-        alias: "Móvil 07",
-        role: "conductor_confirmado",
-        events: "1,2",
-        activeEvent: "1",
-        confirmedEvents: "1"
-      },
-      conductor_sin_confirmar: {
-        uid: "anthi_movil_12",
-        alias: "Móvil 12",
-        role: "conductor_sin_confirmar",
-        events: "1,2",
-        activeEvent: "1",
-        confirmedEvents: ""
-      },
-      emisor_alarma: {
-        uid: "anthi_sos_14",
-        alias: "Móvil 14 (SOS)",
-        role: "emisor_alarma",
-        events: "1",
-        activeEvent: "1",
-        confirmedEvents: ""
+  window.onFirebaseStateUpdate = function(state) {
+    if (!state || typeof state !== "object") return;
+    appState.firebaseConnected = Boolean(state.authenticated);
+    if (state.uid) appState.uid = state.uid;
+    if (state.email) appState.email = state.email;
+    if (state.alias) appState.alias = state.alias;
+    appState.hierarchy = state.hierarchy || "DRIVER";
+    appState.isOwner = Boolean(state.isOwner);
+    appState.isAdmin = Boolean(state.isAdmin);
+    appState.canCloseEvents = Boolean(state.canCloseEvents);
+    appState.canDeleteEvents = Boolean(state.canDeleteEvents);
+    appState.adminInvites = Array.isArray(state.adminInvites) ? state.adminInvites : [];
+    if (Array.isArray(state.confirmedEventIds)) {
+      appState.confirmedEventIds = state.confirmedEventIds;
+    }
+
+    if (Array.isArray(state.events)) {
+      appState.events = state.events.map(ev => ({
+        ...ev,
+        responders: []
+      }));
+      reconcileEventSelection();
+    }
+
+    if (appState.isOwner || appState.isAdmin) {
+      if (appState.role !== "ALARM_EMITTER") {
+        appState.role = "ADMIN";
       }
-    };
-    applyAnthiLaunchParams(payloads[anthiRole] || payloads.conductor_sin_confirmar, true, "sim-deeplink");
-    switchTab("tactical");
-  }
+    } else if (appState.role !== "ALARM_EMITTER") {
+      const confirmedNums = [];
+      appState.events.forEach(ev => {
+        if (
+          appState.confirmedEventIds.includes(ev.id) ||
+          Number(state.confirmedEvent) === Number(ev.number)
+        ) {
+          confirmedNums.push(Number(ev.number));
+        }
+      });
+      if (confirmedNums.length > 0) {
+        appState.confirmedEventsList = Array.from(new Set(confirmedNums));
+        appState.confirmedEvent = appState.confirmedEventsList[0];
+        appState.role = "DRIVER_CONFIRMED";
+      }
+    }
+    renderAll();
+  };
+
+  window.onFirebaseActionResult = function(res) {
+    if (!res) return;
+    addLog("FIREBASE", res.ok ? "OK" : "AVISO", res.message || res.action, !res.ok);
+    renderSimulatorTab();
+    refreshAnthiPanel();
+  };
 
   window.onAnthiDeepLinkUpdate = function(params) {
     applyAnthiLaunchParams(params, true, "deep-link");
   };
 
-  // Receptor unificado ANTHI M34: Query String, Hash (#), postMessage y Deep Link Android
   function readUrlAndHashParams() {
     const merged = {};
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.forEach((v, k) => { if (v) merged[k] = v; });
-
+    new URLSearchParams(window.location.search).forEach((v, k) => { if (v) merged[k] = v; });
     const rawHash = window.location.hash ? window.location.hash.replace(/^#/, "") : "";
     if (rawHash) {
       const hashQuery = rawHash.includes("?") ? rawHash.split("?")[1] : rawHash;
       if (hashQuery.includes("=")) {
-        const hashParams = new URLSearchParams(hashQuery);
-        hashParams.forEach((v, k) => { if (v && !merged[k]) merged[k] = v; });
+        new URLSearchParams(hashQuery).forEach((v, k) => { if (v && !merged[k]) merged[k] = v; });
       }
     }
     return merged;
@@ -1728,111 +1977,74 @@
 
   function applyAnthiLaunchParams(p, startService = true, sourceLabel = "anthi") {
     if (!p || Object.keys(p).length === 0) return;
-
-    const uid = p.uid;
-    const alias = p.alias || p.nombre || p.movil;
-    const normRole = normalizeAnthiRole(p.role);
-    const parsedEvents = parseEventsPayload(p.events || p.activeEvents);
-    const confirmedList = parseConfirmedList(p.confirmedEvents);
-    const targetEv = Number(p.activeEvent || p.focusedEvent || 0);
-
     appState.launchSource = sourceLabel;
-    if (uid) appState.uid = String(uid);
+    if (p.uid) appState.uid = String(p.uid);
+    const alias = p.alias || p.nombre || p.movil;
     if (alias) appState.alias = String(alias);
+    const triggerVal = String(p.trigger || "").toLowerCase();
+    const normRole = (triggerVal === "calavera_m34" || triggerVal === "escudo_m34")
+      ? "ALARM_EMITTER"
+      : normalizeAnthiRole(p.role);
+    if (normRole) appState.role = normRole;
 
-    if (parsedEvents && parsedEvents.length > 0) {
-      appState.events = parsedEvents.map((ev, idx) => ({
-        ...BASE_EVENTS[idx % BASE_EVENTS.length],
-        ...ev,
-        number: Number(ev.number || idx + 1)
-      }));
-      appState.eventCount = appState.events.length;
-    } else {
-      const neededCount = Math.max(appState.eventCount, targetEv || 0, ...(confirmedList.length ? confirmedList : [0]));
-      if (neededCount > appState.events.length) {
-        const capped = Math.min(3, neededCount);
-        appState.events = cloneEvents(capped);
-        appState.eventCount = capped;
+    const rawEventId = p.eventId ? String(p.eventId) : "";
+    const parsedNum = Number((rawEventId.match(/\d+/) || [])[0] || p.activeEvent || p.focusedEvent || 0);
+    if (parsedNum >= 1) {
+      const matched = appState.events.find(e => e.id === rawEventId || e.number === parsedNum);
+      if (matched) {
+        appState.focusedEvent = matched.number;
+      } else if (appState.role === "ALARM_EMITTER" && rawEventId) {
+        appState.events.push({
+          id: rawEventId,
+          number: parsedNum,
+          code: "ANTHI-SOS-" + parsedNum,
+          callsign: appState.alias || "Móvil SOS",
+          sector: p.sector || "Alerta Escudito M34 · En ruta",
+          lat: Number(p.lat) || 7.1524,
+          lng: Number(p.lng) || -73.1296,
+          bearing: 0,
+          speedKmh: 0,
+          audioDb: 72,
+          active: true,
+          status: "active",
+          responders: []
+        });
+        appState.focusedEvent = parsedNum;
       }
     }
 
-    if (normRole) {
-      appState.role = normRole;
-    } else if (confirmedList.length > 0) {
-      appState.role = "DRIVER_CONFIRMED";
-    }
-
-    appState.confirmedEventsList = confirmedList;
-    if (confirmedList.length > 0) {
-      appState.confirmedEvent = confirmedList[0];
-    } else if (appState.role === "DRIVER_CONFIRMED") {
-      appState.confirmedEvent = targetEv >= 1 ? targetEv : 1;
-      appState.confirmedEventsList = [appState.confirmedEvent];
-    } else {
-      appState.confirmedEvent = null;
-    }
-
-    if (targetEv >= 1 && appState.events.some(e => e.number === targetEv)) {
-      appState.focusedEvent = targetEv;
-    } else if (appState.confirmedEvent) {
-      appState.focusedEvent = appState.confirmedEvent;
+    if (p.confirmedEvents) {
+      const nums = String(p.confirmedEvents)
+        .split(",")
+        .map(s => Number((s.match(/\d+/) || [])[0] || 0))
+        .filter(n => n >= 1);
+      if (nums.length > 0) {
+        appState.confirmedEventsList = Array.from(new Set(nums));
+        appState.confirmedEvent = appState.confirmedEventsList[0];
+        if (appState.role !== "ADMIN" && appState.role !== "ALARM_EMITTER") {
+          appState.role = "DRIVER_CONFIRMED";
+          appState.selectedChannel = String(appState.confirmedEvent);
+        }
+      }
     }
 
     if (appState.role === "ALARM_EMITTER") {
       appState.selectedChannel = "VICTIMA";
-    } else if (appState.role === "ADMIN" && !targetEv) {
-      appState.selectedChannel = "ADMIN";
-    } else {
-      appState.selectedChannel = String(appState.focusedEvent);
     }
-
-    if (map) {
-      const evObj = appState.events.find(e => e.number === appState.focusedEvent);
-      if (evObj) map.setView([evObj.lat, evObj.lng], 15);
-    }
-
     syncNativeBridge(startService);
-    addLog("ANTHI", sourceLabel.toUpperCase(), `Enlace cargado · Rol: ${appState.role} · Canal: ${appState.selectedChannel}`, appState.role === "ALARM_EMITTER");
     renderAll();
   }
 
-  window.addEventListener("message", event => {
-    const data = event && event.data;
-    if (!data || typeof data !== "object") return;
-    if (data.type === "ANTHI_PULSO_INIT" || data.type === "ANTHI_M34_OPEN") {
-      applyAnthiLaunchParams(data.payload || data, true, "postMessage");
-    }
-  });
-
   function addLog(ch, actor, msg, alert) {
-    const now = new Date();
-    const time = now.toTimeString().slice(0, 8);
+    const time = new Date().toTimeString().slice(0, 8);
     appState.logs.unshift({ time, ch, actor, msg, alert });
     if (appState.logs.length > 30) appState.logs.pop();
-  }
-
-  // Simulación de movimiento GPS en tiempo real sobre las vías de Bucaramanga
-  function startTelemetryLoop() {
-    setInterval(() => {
-      appState.events.forEach(ev => {
-        const nextPos = destinationPoint(ev.lat, ev.lng, ev.bearing, 14);
-        ev.lat = nextPos[0];
-        ev.lng = nextPos[1];
-        ev.audioDb = Math.max(46, Math.min(86, ev.audioDb + (Math.random() * 10 - 5)));
-        ev.responders.forEach(u => {
-          u.lat += (ev.lat - u.lat) * 0.04;
-          u.lng += (ev.lng - u.lng) * 0.04;
-        });
-      });
-      renderHudAndMapPills();
-      renderMapLayers();
-    }, 1500);
   }
 
   window.addEventListener("pulsoNativePermissionsUpdated", refreshAnthiPanel);
 
   (function boot() {
-    appState.events = cloneEvents(appState.eventCount);
+    appState.events = cloneEvents(BASE_EVENTS);
     const urlParams = readUrlAndHashParams();
     let bridgeParams = {};
     if (hasBridge()) {
@@ -1841,25 +2053,23 @@
       } catch (_) {}
     }
 
-    const combined = { ...bridgeParams, ...urlParams };
-    const hasIncomingParams = Boolean(
-      combined.uid ||
-      combined.role ||
-      combined.activeEvent ||
-      combined.focusedEvent ||
-      combined.confirmedEvents ||
-      combined.events ||
-      combined.activeEvents
-    );
-
     initLeafletMap();
-    if (hasIncomingParams) {
+    const combined = { ...bridgeParams, ...urlParams };
+    if (Object.keys(combined).length > 0) {
       applyAnthiLaunchParams(combined, false, urlParams.role ? "url/hash" : "deep-link");
     } else {
-      addLog("ANTHI", "SISTEMA", "Inicio directo sin parámetros · Simulador listo.", false);
+      addLog("ANTHI", "SISTEMA", "Mapa urbano de calles y carreras listo.", false);
       renderAll();
     }
-    startTelemetryLoop();
+
+    if (hasBridge() && window.AndroidPulsoBridge.getFirebaseSessionJson) {
+      try {
+        const initialFb = JSON.parse(window.AndroidPulsoBridge.getFirebaseSessionJson());
+        if (initialFb && initialFb.authenticated) {
+          window.onFirebaseStateUpdate(initialFb);
+        }
+      } catch (_) {}
+    }
   })();
 </script>
 </body>

@@ -20,7 +20,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,15 +31,41 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import com.example.firebase.AdminGrant
+import com.example.firebase.AdminInvite
+import com.example.firebase.AnthiAuthManager
+import com.example.firebase.AnthiFirestoreRepository
+import com.example.firebase.AnthiHierarchyLevel
+import com.example.firebase.TacticalEvent
+import com.example.firebase.UserProfile
+import com.example.firebase.authStateFlow
 import com.example.service.PulsoRadioService
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var loadingContainer: LinearLayout
+    private lateinit var authContainer: LinearLayout
+    private lateinit var authErrorText: TextView
+    private lateinit var authProgress: ProgressBar
+    private lateinit var btnGoogleSignIn: Button
+
+    private lateinit var authManager: AnthiAuthManager
+    private lateinit var firestoreRepository: AnthiFirestoreRepository
 
     private var pendingWebPermissionRequest: PermissionRequest? = null
     private var pendingGeoOrigin: String? = null
@@ -45,11 +74,18 @@ class MainActivity : AppCompatActivity() {
     private var isEmitterSilentMode: Boolean = false
     private val savedVolumes = mutableMapOf<Int, Int>()
     private var fallbackLoaded: Boolean = false
+    private var webPageReady: Boolean = false
+
+    private var observedUid: String? = null
+    private var firestoreJobs = mutableListOf<Job>()
+    private var activeEvents: List<TacticalEvent> = emptyList()
+    private var currentAdminGrant: AdminGrant? = null
+    private var currentProfile: UserProfile? = null
+    private var activeAdminInvites: List<AdminInvite> = emptyList()
 
     private val runtimePermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        // Resolver solicitudes pendientes del WebView (micrófono / cámara)
+    ) { _ ->
         pendingWebPermissionRequest?.let { request ->
             val grantedResources = mutableListOf<String>()
             request.resources.forEach { res ->
@@ -74,7 +110,6 @@ class MainActivity : AppCompatActivity() {
             pendingWebPermissionRequest = null
         }
 
-        // Resolver solicitud pendiente de geolocalización
         val geoCallback = pendingGeoCallback
         val geoOrigin = pendingGeoOrigin
         if (geoCallback != null && geoOrigin != null) {
@@ -85,7 +120,6 @@ class MainActivity : AppCompatActivity() {
             pendingGeoOrigin = null
         }
 
-        // Notificar a la web el estado actualizado de permisos nativos
         val statusJson = buildPermissionsJson().toString()
         webView.post {
             webView.evaluateJavascript(
@@ -100,9 +134,16 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
+        authManager = AnthiAuthManager(applicationContext)
+        firestoreRepository = AnthiFirestoreRepository(applicationContext)
+
         val rootContainer: View = findViewById(R.id.rootContainer)
         webView = findViewById(R.id.pulsoWebView)
         loadingContainer = findViewById(R.id.loadingContainer)
+        authContainer = findViewById(R.id.authContainer)
+        authErrorText = findViewById(R.id.authErrorText)
+        authProgress = findViewById(R.id.authProgress)
+        btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn)
 
         ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { view, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -111,14 +152,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupBackNavigation()
+        setupAuthUi()
         configureWebView()
         requestEssentialRuntimePermissions()
 
         val anthiParams = extractAndPersistAnthiParams(intent)
-        if (isEmitterRole(anthiParams["role"])) {
+        if (isEmitterRole(anthiParams["role"]) || isM34SkullTrigger(anthiParams)) {
             applyStrictEmitterSilentMode(true)
+            startBackgroundTacticalService(
+                role = "ALARM_EMITTER",
+                eventId = resolveEventIdParam(anthiParams),
+                emitterSilent = true
+            )
         }
-        loadPulsoWebApp(anthiParams)
+
+        observeAuthState(anthiParams)
+        lifecycleScope.launch {
+            if (Firebase.auth.currentUser == null) {
+                authManager.attemptAutoSignIn()
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -126,22 +179,263 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         val updatedParams = extractAndPersistAnthiParams(intent)
         val paramsJson = JSONObject(updatedParams).toString()
-        webView.post {
-            webView.evaluateJavascript(
-                "if(window.onAnthiDeepLinkUpdate){window.onAnthiDeepLinkUpdate($paramsJson);}",
-                null
+        if (webPageReady) {
+            webView.post {
+                webView.evaluateJavascript(
+                    "if(window.onAnthiDeepLinkUpdate){window.onAnthiDeepLinkUpdate($paramsJson);}",
+                    null
+                )
+            }
+        }
+        val emitterActive = isEmitterRole(updatedParams["role"]) || isM34SkullTrigger(updatedParams)
+        applyStrictEmitterSilentMode(emitterActive)
+        if (emitterActive) {
+            startBackgroundTacticalService(
+                role = "ALARM_EMITTER",
+                eventId = resolveEventIdParam(updatedParams),
+                emitterSilent = true
             )
         }
-        applyStrictEmitterSilentMode(isEmitterRole(updatedParams["role"]))
+        Firebase.auth.currentUser?.let {
+            lifecycleScope.launch {
+                syncAnthiUserAndAlarmIfNeeded(updatedParams)
+            }
+        }
     }
 
     override fun onDestroy() {
-        if (isEmitterSilentMode) {
+        stopFirestoreObservers()
+        // Mantener silencio estricto y servicio activo si hay un evento Emisor SOS corriendo en 2º plano
+        if (isEmitterSilentMode && !PulsoRadioService.isRunning) {
             applyStrictEmitterSilentMode(false)
         }
         webView.removeJavascriptInterface(JS_BRIDGE_NAME)
         webView.destroy()
         super.onDestroy()
+    }
+
+    private fun setupAuthUi() {
+        btnGoogleSignIn.setOnClickListener {
+            setAuthLoading(true, null)
+            lifecycleScope.launch {
+                val result = authManager.signInInteractive(this@MainActivity)
+                result.onSuccess {
+                    setAuthLoading(false, null)
+                }.onFailure { error ->
+                    val message = if (error is GetCredentialCancellationException) {
+                        "Inicio de sesión cancelado. Selecciona una cuenta Google vinculada a ANTHI para continuar."
+                    } else {
+                        error.localizedMessage ?: "No se pudo autenticar con Google."
+                    }
+                    setAuthLoading(false, message)
+                }
+            }
+        }
+    }
+
+    private fun setAuthLoading(loading: Boolean, errorMessage: String?) {
+        btnGoogleSignIn.isEnabled = !loading
+        authProgress.visibility = if (loading) View.VISIBLE else View.GONE
+        if (errorMessage.isNullOrBlank()) {
+            authErrorText.visibility = View.GONE
+        } else {
+            authErrorText.text = errorMessage
+            authErrorText.visibility = View.VISIBLE
+        }
+    }
+
+    private fun observeAuthState(initialAnthiParams: Map<String, String>) {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                Firebase.auth.authStateFlow().collect { user ->
+                    if (user == null) {
+                        stopFirestoreObservers()
+                        observedUid = null
+                        loadingContainer.visibility = View.GONE
+                        authContainer.visibility = View.VISIBLE
+                    } else {
+                        authContainer.visibility = View.GONE
+                        val uid = user.uid
+                        if (observedUid != uid) {
+                            observedUid = uid
+                            val params = readPersistedAnthiParams().ifEmpty { initialAnthiParams }
+                            ensureProfileAndObserve(uid, params)
+                            if (!webPageReady) {
+                                loadingContainer.visibility = View.VISIBLE
+                                loadPulsoWebApp(params)
+                            } else {
+                                pushFirebaseStateToWeb()
+                            }
+                        } else {
+                            pushFirebaseStateToWeb()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun ensureProfileAndObserve(uid: String, params: Map<String, String>) {
+        stopFirestoreObservers()
+        lifecycleScope.launch {
+            syncAnthiUserAndAlarmIfNeeded(params)
+            if (firestoreRepository.isOwnerUser()) {
+                firestoreRepository.seedInitialEventsIfAllowed()
+            }
+        }
+
+        val eventsJob = lifecycleScope.launch {
+            firestoreRepository.observeActiveEvents()
+                .catch { error ->
+                    if (error is CancellationException) throw error
+                    pushActionResult("observeEvents", false, error.localizedMessage ?: "Error leyendo eventos.")
+                }
+                .collect { events ->
+                    activeEvents = events
+                    pushFirebaseStateToWeb()
+                }
+        }
+
+        val adminJob = lifecycleScope.launch {
+            firestoreRepository.observeAdminGrant(uid)
+                .catch { error ->
+                    if (error is CancellationException) throw error
+                }
+                .collect { grant ->
+                    currentAdminGrant = grant
+                    pushFirebaseStateToWeb()
+                }
+        }
+
+        val profileJob = lifecycleScope.launch {
+            firestoreRepository.observeUserProfile(uid)
+                .catch { error ->
+                    if (error is CancellationException) throw error
+                }
+                .collect { profile ->
+                    currentProfile = profile
+                    pushFirebaseStateToWeb()
+                }
+        }
+
+        firestoreJobs.addAll(listOf(eventsJob, adminJob, profileJob))
+
+        if (firestoreRepository.isOwnerUser()) {
+            val invitesJob = lifecycleScope.launch {
+                firestoreRepository.observeAdminInvites()
+                    .catch { error ->
+                        if (error is CancellationException) throw error
+                    }
+                    .collect { invites ->
+                        activeAdminInvites = invites
+                        pushFirebaseStateToWeb()
+                    }
+            }
+            firestoreJobs.add(invitesJob)
+        }
+    }
+
+    private fun stopFirestoreObservers() {
+        firestoreJobs.forEach { it.cancel() }
+        firestoreJobs.clear()
+        activeEvents = emptyList()
+        currentAdminGrant = null
+        currentProfile = null
+        activeAdminInvites = emptyList()
+    }
+
+    private fun currentHierarchyLevel(): AnthiHierarchyLevel {
+        if (firestoreRepository.isOwnerUser()) return AnthiHierarchyLevel.SUPERADMIN
+        if (currentAdminGrant?.role == "ADMIN") return AnthiHierarchyLevel.ADMIN
+        return AnthiHierarchyLevel.DRIVER
+    }
+
+    private fun buildFirebaseStateJson(): JSONObject {
+        val user = Firebase.auth.currentUser
+        val hierarchy = currentHierarchyLevel()
+        val isOwner = hierarchy == AnthiHierarchyLevel.SUPERADMIN
+        val isAdmin = hierarchy == AnthiHierarchyLevel.ADMIN || isOwner
+
+        val eventsArray = JSONArray()
+        activeEvents.forEach { ev ->
+            eventsArray.put(
+                JSONObject().apply {
+                    put("id", ev.id)
+                    put("number", ev.eventNumber)
+                    put("code", ev.code)
+                    put("callsign", ev.callsign)
+                    put("sector", ev.sector)
+                    put("lat", ev.lat)
+                    put("lng", ev.lng)
+                    put("bearing", ev.bearing)
+                    put("speedKmh", ev.speedKmh)
+                    put("audioDb", ev.audioDb)
+                    put("status", ev.status)
+                    put("createdBy", ev.createdBy)
+                }
+            )
+        }
+
+        val invitesArray = JSONArray()
+        if (isOwner) {
+            activeAdminInvites.forEach { inv ->
+                invitesArray.put(
+                    JSONObject().apply {
+                        put("hash", inv.id)
+                        put("label", inv.label)
+                        put("active", inv.active)
+                    }
+                )
+            }
+        }
+
+        val confirmedIdsArray = JSONArray()
+        currentProfile?.confirmedEventIds.orEmpty().forEach { confirmedIdsArray.put(it) }
+
+        return JSONObject().apply {
+            put("authenticated", user != null)
+            put("uid", user?.uid.orEmpty())
+            put("email", user?.email.orEmpty())
+            put("displayName", user?.displayName.orEmpty())
+            put("alias", currentProfile?.alias ?: user?.displayName ?: "Móvil ANTHI")
+            put("anthiUid", currentProfile?.anthiUid.orEmpty())
+            put("confirmedEvent", currentProfile?.confirmedEvent ?: 0L)
+            put("confirmedEventIds", confirmedIdsArray)
+            put("hierarchy", hierarchy.name)
+            put("isOwner", isOwner)
+            put("isAdmin", isAdmin)
+            put("canCloseEvents", isAdmin)
+            put("canDeleteEvents", isOwner)
+            put("canManagePermissions", isOwner)
+            put("events", eventsArray)
+            put("adminInvites", invitesArray)
+        }
+    }
+
+    private fun pushFirebaseStateToWeb() {
+        if (!webPageReady) return
+        val payload = buildFirebaseStateJson().toString()
+        webView.post {
+            webView.evaluateJavascript(
+                "if(window.onFirebaseStateUpdate){window.onFirebaseStateUpdate($payload);}",
+                null
+            )
+        }
+    }
+
+    private fun pushActionResult(action: String, ok: Boolean, message: String) {
+        if (!webPageReady) return
+        val resultJson = JSONObject().apply {
+            put("action", action)
+            put("ok", ok)
+            put("message", message)
+        }.toString()
+        webView.post {
+            webView.evaluateJavascript(
+                "if(window.onFirebaseActionResult){window.onFirebaseActionResult($resultJson);}",
+                null
+            )
+        }
     }
 
     private fun setupBackNavigation() {
@@ -196,14 +490,15 @@ class MainActivity : AppCompatActivity() {
                 if (isTrustedPulsoUri(uri)) {
                     return false
                 }
-                // Abrir enlaces externos en el navegador del sistema sin exponer AndroidPulsoBridge
                 startActivity(Intent(Intent.ACTION_VIEW, uri))
                 return true
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                webPageReady = true
                 loadingContainer.visibility = View.GONE
+                pushFirebaseStateToWeb()
             }
 
             override fun onReceivedError(
@@ -290,10 +585,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadPulsoWebApp(params: Map<String, String>) {
         fallbackLoaded = false
+        webPageReady = false
         val targetUrl = appendAnthiQueryParams(PULSO_WEB_URL, params)
         webView.loadUrl(targetUrl)
 
-        // Si el dominio remoto aún no está desplegado, conmutar rápido al módulo táctico empaquetado
         webView.postDelayed({
             if (!fallbackLoaded && loadingContainer.visibility == View.VISIBLE) {
                 webView.stopLoading()
@@ -304,6 +599,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadLocalBundledFallback() {
         fallbackLoaded = true
+        webPageReady = false
         val params = readPersistedAnthiParams()
         val fallbackUrl = appendAnthiQueryParams(LOCAL_ASSET_FALLBACK_URL, params)
         webView.loadUrl(fallbackUrl)
@@ -342,7 +638,6 @@ class MainActivity : AppCompatActivity() {
 
         val editor = prefs.edit().clear()
         if (resolved.isEmpty()) {
-            // Inicio directo sin parámetros ANTHI: mantener modo simulador limpio por defecto
             editor.apply()
             return emptyMap()
         }
@@ -382,6 +677,72 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun isM34SkullTrigger(params: Map<String, String>): Boolean {
+        val trigger = params["trigger"]?.trim()?.lowercase().orEmpty()
+        return trigger == "calavera_m34" || trigger == "escudo_m34" || trigger == "sos_m34"
+    }
+
+    private fun resolveEventIdParam(params: Map<String, String>): String {
+        val rawId = params["eventId"]
+        val num = AnthiFirestoreRepository.extractEventNumber(rawId)
+            ?: params["activeEvent"]?.toLongOrNull()
+            ?: params["focusedEvent"]?.toLongOrNull()
+            ?: 1L
+        return AnthiFirestoreRepository.sanitizeEventId(rawId, num)
+    }
+
+    private fun parseConfirmedEventIds(params: Map<String, String>): List<String> {
+        val raw = params["confirmedEvents"].orEmpty()
+        if (raw.isBlank()) return emptyList()
+        return raw.split(",")
+            .map { token -> token.trim() }
+            .filter { it.isNotEmpty() }
+            .map { token ->
+                if (token.all { it.isDigit() }) "ev_$token" else AnthiFirestoreRepository.sanitizeEventId(token, 1L)
+            }
+            .distinct()
+    }
+
+    private suspend fun syncAnthiUserAndAlarmIfNeeded(params: Map<String, String>) {
+        val eventId = resolveEventIdParam(params)
+        val eventNumber = AnthiFirestoreRepository.extractEventNumber(eventId)
+            ?: params["activeEvent"]?.toLongOrNull()
+            ?: 1L
+        val alias = params["alias"] ?: params["nombre"] ?: params["movil"]
+        val confirmedIds = parseConfirmedEventIds(params)
+
+        firestoreRepository.ensureUserProfile(
+            anthiUid = params["uid"],
+            alias = alias,
+            focusedEvent = eventNumber,
+            confirmedEventIdsFromAnthi = confirmedIds
+        )
+
+        if (isEmitterRole(params["role"]) || isM34SkullTrigger(params)) {
+            val lat = params["lat"]?.toDoubleOrNull() ?: 7.1524
+            val lng = params["lng"]?.toDoubleOrNull() ?: -73.1296
+            val sector = params["sector"].orEmpty().ifBlank { "Alerta Escudito M34 · En ruta" }
+            val callsign = params["callsign"] ?: alias ?: "Móvil SOS"
+            firestoreRepository.activateEmergencyEvent(
+                eventId = eventId,
+                eventNumber = eventNumber,
+                callsign = callsign,
+                sector = sector,
+                lat = lat,
+                lng = lng
+            )
+        }
+    }
+
+    private fun startBackgroundTacticalService(role: String, eventId: String, emitterSilent: Boolean) {
+        val intent = Intent(this, PulsoRadioService::class.java).apply {
+            putExtra(PulsoRadioService.EXTRA_ROLE, role.ifBlank { "OPERADOR" })
+            putExtra(PulsoRadioService.EXTRA_EVENT_ID, eventId.ifBlank { "ev_1" })
+            putExtra(PulsoRadioService.EXTRA_EMITTER_SILENT, emitterSilent)
+        }
+        ContextCompat.startForegroundService(this, intent)
+    }
+
     private fun requestEssentialRuntimePermissions() {
         val required = buildList {
             add(Manifest.permission.RECORD_AUDIO)
@@ -403,11 +764,6 @@ class MainActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
     }
 
-    /**
-     * Regla crítica de seguridad del Emisor en Alarma:
-     * Fuerza el silenciado total de salida multimedia/altavoz para garantizar
-     * 0% reproducción de audio entrante, manteniendo intacta la captura de mic, cámara y GPS.
-     */
     private fun applyStrictEmitterSilentMode(enable: Boolean) {
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
         val outputStreams = listOf(
@@ -434,7 +790,6 @@ class MainActivity : AppCompatActivity() {
                         audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_MUTE, 0)
                     }
                 } catch (_: SecurityException) {
-                    // Algunas políticas de DND restringen STREAM_RING en ciertos dispositivos
                 }
             }
         } else {
@@ -473,22 +828,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Puente nativo expuesto a la app web de Pulso M34 bajo `window.AndroidPulsoBridge`.
-     */
     inner class AndroidPulsoBridge {
 
         @JavascriptInterface
         fun startTacticalService(role: String?, eventId: String?) {
             runOnUiThread {
                 val safeRole = role.orEmpty().ifBlank { "OPERADOR" }
-                val safeEventId = eventId.orEmpty().ifBlank { "1" }
-                val intent = Intent(this@MainActivity, PulsoRadioService::class.java).apply {
-                    putExtra(PulsoRadioService.EXTRA_ROLE, safeRole)
-                    putExtra(PulsoRadioService.EXTRA_EVENT_ID, safeEventId)
-                    putExtra(PulsoRadioService.EXTRA_EMITTER_SILENT, isEmitterSilentMode)
-                }
-                ContextCompat.startForegroundService(this@MainActivity, intent)
+                val safeEventId = eventId.orEmpty().ifBlank { "ev_1" }
+                startBackgroundTacticalService(
+                    role = safeRole,
+                    eventId = safeEventId,
+                    emitterSilent = isEmitterSilentMode || isEmitterRole(safeRole)
+                )
             }
         }
 
@@ -506,9 +857,13 @@ class MainActivity : AppCompatActivity() {
         fun setEmitterSilentMode(enabled: Boolean) {
             runOnUiThread {
                 applyStrictEmitterSilentMode(enabled)
-                if (enabled && PulsoRadioService.isRunning) {
-                    val activeEv = readPersistedAnthiParams()["activeEvent"] ?: "1"
-                    startTacticalService("ALARM_EMITTER", activeEv)
+                if (enabled || PulsoRadioService.isRunning) {
+                    val activeEv = resolveEventIdParam(readPersistedAnthiParams())
+                    startBackgroundTacticalService(
+                        role = if (enabled) "ALARM_EMITTER" else "OPERADOR",
+                        eventId = activeEv,
+                        emitterSilent = enabled
+                    )
                 }
             }
         }
@@ -532,6 +887,137 @@ class MainActivity : AppCompatActivity() {
         fun getAnthiLaunchParams(): String {
             return JSONObject(readPersistedAnthiParams()).toString()
         }
+
+        @JavascriptInterface
+        fun getFirebaseSessionJson(): String {
+            return buildFirebaseStateJson().toString()
+        }
+
+        @JavascriptInterface
+        fun seedInitialEvents() {
+            lifecycleScope.launch {
+                val res = firestoreRepository.seedInitialEventsIfAllowed()
+                pushActionResult(
+                    "seedEvents",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Eventos iniciales sincronizados en Firestore."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun confirmSiVoyFirestore(eventId: String?, eventNumber: Int, callsign: String?, lat: Double, lng: Double) {
+            lifecycleScope.launch {
+                val safeId = eventId.orEmpty().ifBlank { "ev_$eventNumber" }
+                val res = firestoreRepository.confirmSiVoy(
+                    eventId = safeId,
+                    eventNumber = eventNumber.toLong(),
+                    callsign = callsign ?: "Móvil ANTHI",
+                    lat = lat,
+                    lng = lng
+                )
+                pushActionResult(
+                    "confirmSiVoy",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Apoyo Sí voy confirmado en tiempo real."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun closeEventFirestore(eventId: String?) {
+            lifecycleScope.launch {
+                val safeId = eventId.orEmpty()
+                val res = firestoreRepository.closeEvent(safeId)
+                pushActionResult(
+                    "closeEvent",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Evento cerrado en tiempo real."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun deleteEventFirestore(eventId: String?) {
+            lifecycleScope.launch {
+                val safeId = eventId.orEmpty()
+                val res = firestoreRepository.deleteEvent(safeId)
+                pushActionResult(
+                    "deleteEvent",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Evento eliminado definitivamente por Superadministrador."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun redeemAdminCode(rawCode: String?, alias: String?) {
+            lifecycleScope.launch {
+                val res = firestoreRepository.redeemAdminCode(rawCode.orEmpty(), alias)
+                pushActionResult(
+                    "redeemAdminCode",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Rol Administrador habilitado correctamente."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun createAdminInviteCode(label: String?, rawCode: String?) {
+            lifecycleScope.launch {
+                val res = firestoreRepository.createAdminInvite(label.orEmpty(), rawCode.orEmpty())
+                pushActionResult(
+                    "createAdminInvite",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Código de permiso administrativo guardado en Firebase."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun revokeAdminInvite(inviteHash: String?) {
+            lifecycleScope.launch {
+                val res = firestoreRepository.revokeAdminInvite(inviteHash.orEmpty())
+                pushActionResult(
+                    "revokeAdminInvite",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Código de permiso revocado."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun activateM34AlarmEvent(eventId: String?, eventNumber: Int, callsign: String?, sector: String?, lat: Double, lng: Double) {
+            runOnUiThread {
+                applyStrictEmitterSilentMode(true)
+                val safeId = AnthiFirestoreRepository.sanitizeEventId(eventId, eventNumber.toLong())
+                startBackgroundTacticalService("ALARM_EMITTER", safeId, true)
+            }
+            lifecycleScope.launch {
+                val res = firestoreRepository.activateEmergencyEvent(
+                    eventId = eventId.orEmpty(),
+                    eventNumber = eventNumber.toLong().coerceIn(1L, 999L),
+                    callsign = callsign ?: "Móvil SOS",
+                    sector = sector ?: "Alerta Escudito M34 · En ruta",
+                    lat = lat,
+                    lng = lng
+                )
+                pushActionResult(
+                    "activateM34AlarmEvent",
+                    res.isSuccess,
+                    res.exceptionOrNull()?.localizedMessage ?: "Alarma M34 activada en Firebase (persistente en segundo plano)."
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun signOutAnthi() {
+            lifecycleScope.launch {
+                authManager.signOut {
+                    stopFirestoreObservers()
+                }
+            }
+        }
     }
 
     companion object {
@@ -545,11 +1031,17 @@ class MainActivity : AppCompatActivity() {
             "nombre",
             "movil",
             "role",
+            "trigger",
+            "eventId",
             "events",
             "activeEvents",
             "activeEvent",
             "focusedEvent",
-            "confirmedEvents"
+            "confirmedEvents",
+            "callsign",
+            "sector",
+            "lat",
+            "lng"
         )
     }
 }
