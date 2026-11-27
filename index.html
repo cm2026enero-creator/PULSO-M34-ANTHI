@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PULSO M34 · ANTHI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg-main: #070B12;
+      --bg-card: #0D1522;
+      --accent: #00E5A8;
+      --cyan: #06B6D4;
+      --alert: #FF3B30;
+      --warn: #F59E0B;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; user-select: none; }
+    body { background: var(--bg-main); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Barra superior */
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid rgba(0, 229, 168, 0.25);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.9rem; letter-spacing: 0.5px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .btn-apk {
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* Mapa superior */
+    #map-container { position: relative; flex: 1; width: 100%; background: #05080f; }
+    #map { width: 100%; height: 100%; }
+    .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(88%) contrast(115%); }
+    .map-overlay {
+      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 900;
+      display: flex; justify-content: space-between; gap: 6px; pointer-events: none;
+    }
+    .hud-box {
+      background: rgba(13, 21, 34, 0.9); border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; pointer-events: auto;
+    }
+    .hud-alert { color: var(--alert); font-weight: 800; }
+    .event-tabs { display: flex; gap: 4px; margin-top: 4px; }
+    .ev-tab {
+      background: #1E293B; color: var(--text); border: 1px solid transparent;
+      padding: 3px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+    }
+    .ev-tab.active { border-color: var(--alert); background: rgba(255, 59, 48, 0.25); color: #fff; }
+
+    /* Consola inferior de Radio PTT */
+    #radio-dock {
+      background: var(--bg-card);
+      border-top: 1px solid rgba(0, 229, 168, 0.3);
+      padding: 10px 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+    .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+    select {
+      background: #070B12; color: var(--text); border: 1px solid #334155;
+      padding: 7px 8px; border-radius: 7px; font-size: 0.78rem; font-weight: 600; flex: 1;
+    }
+    .btn-sivoy {
+      background: var(--accent); color: #04130E; border: none;
+      padding: 7px 12px; border-radius: 7px; font-size: 0.78rem; font-weight: 800; cursor: pointer;
+    }
+    .btn-sivoy.confirmed { background: #10B981; color: #fff; }
+    .status-bar {
+      background: #070B12; border: 1px solid #1E293B; border-radius: 8px;
+      padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .timer {
+      font-family: monospace; font-size: 1rem; font-weight: 800;
+      background: #111827; padding: 3px 8px; border-radius: 5px; color: var(--accent);
+    }
+    .channels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .ch-btn {
+      background: #111927; border: 1px solid #263244; color: var(--muted);
+      padding: 9px 4px; border-radius: 7px; font-size: 0.75rem; font-weight: 800; cursor: pointer;
+    }
+    .ch-btn.active { border-color: var(--cyan); color: #fff; background: rgba(6, 182, 212, 0.2); }
+    .ch-btn.victim.active { border-color: var(--alert); background: rgba(255, 59, 48, 0.25); color: #fff; }
+    .ch-btn.admin.active { border-color: var(--warn); background: rgba(245, 158, 11, 0.25); color: #fff; }
+
+    /* Botón PTT */
+    #ptt-btn {
+      width: 100%; padding: 15px; border-radius: 10px; border: 1px solid var(--accent);
+      background: rgba(0, 229, 168, 0.14); color: var(--accent);
+      font-size: 0.9rem; font-weight: 900; letter-spacing: 0.6px; cursor: pointer;
+      transition: 0.12s;
+    }
+    #ptt-btn.tx {
+      background: var(--alert); border-color: #fff; color: #fff;
+      box-shadow: 0 0 18px rgba(255, 59, 48, 0.7);
+    }
+    #ptt-btn.blocked {
+      background: #111827; border-color: #334155; color: #64748B; cursor: not-allowed;
+    }
+    .silent-banner {
+      display: none; background: rgba(255, 59, 48, 0.2); border: 1px solid var(--alert);
+      color: #FCA5A5; text-align: center; font-size: 0.74rem; font-weight: 800;
+      padding: 6px; border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand"><span class="dot"></span> PULSO M34 · ANTHI</div>
+    <!-- Cambia el enlace # por la URL directa de tu APK cuando la subas a Releases -->
+    <a id="apk-link" href="https://github.com/cm2026enero-creator/PULSO-M34-ANTHI/releases" target="_blank" class="btn-apk">⬇ Descargar APK</a>
+  </header>
+
+  <div id="map-container">
+    <div id="map"></div>
+    <div class="map-overlay">
+      <div class="hud-box">
+        <div id="ev-title" class="hud-alert">EV.1 · Móvil 14 (ANTHI-3401)</div>
+        <div id="ev-desc" style="color:#CBD5E1;margin-top:2px;">Café Madrid · 54 km/h Norte</div>
+        <div class="event-tabs">
+          <button class="ev-tab active" onclick="selectEvent(1)">EV.1</button>
+          <button class="ev-tab" onclick="selectEvent(2)">EV.2</button>
+          <button class="ev-tab" onclick="selectEvent(3)">EV.3</button>
+        </div>
+      </div>
+      <div class="hud-box" style="text-align:right;">
+        <div style="color:var(--accent);font-weight:700;">OSM Táctico</div>
+        <div style="color:var(--muted);">Móvil 07</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="radio-dock">
+    <div id="silent-alert" class="silent-banner">
+      🔇 EMISOR EN ALARMA: Audio entrante silenciado al 100% (Solo captura)
+    </div>
+
+    <div class="row">
+      <select id="role-select" onchange="updateState()">
+        <option value="
